@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 
 import { FileDrop } from '@/components/file-drop'
+import { InstallQrDialog } from '@/components/install-qr-dialog'
 import {
   LogConsole,
   type LogEntry,
@@ -30,6 +31,7 @@ import { CircleCheckBig } from '@/components/animate-ui/icons/circle-check-big'
 import { Send } from '@/components/animate-ui/icons/send'
 import { Lock } from '@/components/animate-ui/icons/lock'
 import { ClipboardList } from '@/components/animate-ui/icons/clipboard-list'
+import type { InstallMetadata } from '@/install-api'
 import { saveOutput, signIpa } from '@/zsign-api'
 import type { OutputFile, SignIpaOptions } from '@/types'
 
@@ -168,12 +170,24 @@ function logLevelFor(line: string): LogLevel {
   return 'info'
 }
 
+function parseInstallMetadataLine(line: string) {
+  const match = cleanLogLine(line).match(/^>>>\s*(AppName|BundleId|Version):\s*(.+)$/i)
+  if (!match) return null
+
+  const [, key, value] = match
+  if (key.toLowerCase() === 'appname') return { appName: value.trim() }
+  if (key.toLowerCase() === 'bundleid') return { bundleId: value.trim() }
+  if (key.toLowerCase() === 'version') return { version: value.trim() }
+  return null
+}
+
 function LegalFooter() {
   return (
     <footer className="mt-10 flex flex-col items-center justify-center gap-3 text-center text-xs text-muted-foreground">
       <p className="max-w-3xl italic leading-5">
         Sylva Signer runs zsign as WebAssembly inside a dedicated browser worker. Your IPA,
-        certificate, provisioning profile, password, and signed output remain on this device.
+        certificate, provisioning profile, password, and signed output remain on this device
+        during signing; QR install uploads only the signed IPA after confirmation.
       </p>
       <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
         <a className="transition-colors hover:text-red-500" href="#privacy">
@@ -256,7 +270,9 @@ function InfoPage({ route }: { route: Exclude<Route, 'app'> }) {
               <p>
                 Sylva Signer is designed to sign IPA files locally in your browser. The app
                 does not require a signing server and does not intentionally upload your IPA,
-                P12/PFX certificate, provisioning profile, password, dylibs, or signed output.
+                P12/PFX certificate, provisioning profile, password, or dylibs. If you choose
+                QR install after signing, only the signed IPA is uploaded temporarily so iOS can
+                fetch it over HTTPS.
               </p>
               <p>
                 Optional certificate caching stores selected signing material and password
@@ -321,9 +337,12 @@ function SignerApp() {
   const [logs, setLogs] = React.useState<LogEntry[]>([])
   const [state, setState] = React.useState<SignState>('idle')
   const [outputs, setOutputs] = React.useState<OutputFile[]>([])
+  const [installMetadata, setInstallMetadata] = React.useState<Partial<InstallMetadata>>({})
+  const [installDialogOpen, setInstallDialogOpen] = React.useState(false)
 
   const canSign = Boolean(ipa[0] && (p12[0] || cachedCertInfo?.p12) && (profiles.length || cachedCertInfo?.profiles.length)) && state !== 'signing'
   const hasCache = Boolean(cachedCertInfo?.p12 || cachedCertInfo?.profiles.length || cachedCertInfo?.password)
+  const firstOutput = outputs.find((output) => output.name.toLowerCase().endsWith('.ipa')) ?? outputs[0]
 
   const hydrateCachedFiles = React.useCallback((cached: CachedCertInfo | null) => {
     if (!cached) return
@@ -360,7 +379,13 @@ function SignerApp() {
   }, [])
 
   const addWorkerLog = React.useCallback(
-    (line: string) => addLog(logLevelFor(line), cleanLogLine(line)),
+    (line: string) => {
+      const parsedMetadata = parseInstallMetadataLine(line)
+      if (parsedMetadata) {
+        setInstallMetadata((current) => ({ ...current, ...parsedMetadata }))
+      }
+      addLog(logLevelFor(line), cleanLogLine(line))
+    },
     [addLog],
   )
 
@@ -417,6 +442,8 @@ function SignerApp() {
     setState('signing')
     setLogs([])
     setOutputs([])
+    setInstallMetadata({})
+    setInstallDialogOpen(false)
 
     try {
       if (cacheCert) await saveCertCacheFromInputs()
@@ -435,7 +462,6 @@ function SignerApp() {
   }
 
   const handleDownload = () => {
-    const firstOutput = outputs.find((output) => output.name.toLowerCase().endsWith('.ipa')) ?? outputs[0]
     if (!firstOutput) return
     saveOutput(firstOutput)
     addLog('success', `Download started: ${firstOutput.name}`)
@@ -451,6 +477,8 @@ function SignerApp() {
     setBundleId('')
     setOutputs([])
     setLogs([])
+    setInstallMetadata({})
+    setInstallDialogOpen(false)
     if (!cacheCert) setCertPassword('')
     setState('idle')
   }
@@ -688,14 +716,25 @@ function SignerApp() {
           </div>
 
           {state === 'done' && outputs.length > 0 && (
-            <div className="mt-4 flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-emerald-600 dark:text-emerald-400">
+            <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-emerald-600 dark:text-emerald-400">
               <CircleCheckBig size={20} animate />
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium">Signing complete</p>
                 <p className="truncate text-xs opacity-80">
                   {outputs[0]?.name ?? outputName} is ready to download
                 </p>
               </div>
+              <AnimateIcon animateOnHover asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setInstallDialogOpen(true)}
+                  className="gap-2 border-emerald-500/30 bg-background/70 text-foreground hover:bg-background"
+                >
+                  <Send size={16} />
+                  Install QR
+                </Button>
+              </AnimateIcon>
             </div>
           )}
 
@@ -717,6 +756,15 @@ function SignerApp() {
           )}
         </div>
       </div>
+
+      {installDialogOpen && firstOutput && (
+        <InstallQrDialog
+          output={firstOutput}
+          initialMetadata={installMetadata}
+          onClose={() => setInstallDialogOpen(false)}
+          onLog={(message) => addLog(logLevelFor(message), message)}
+        />
+      )}
 
       <LegalFooter />
     </main>

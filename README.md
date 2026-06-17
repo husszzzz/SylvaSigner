@@ -5,6 +5,8 @@ Modern desktop-Chromium web app for fully local IPA signing in the browser.
 Sylva Signer runs a WebAssembly build of [`zhlynn/zsign`](https://github.com/zhlynn/zsign)
 inside a dedicated browser worker. IPA files, signing certificates, provisioning
 profiles, passwords, injected dylibs, and signed output remain on the local device.
+The optional QR install flow is separate: after signing, the user can explicitly upload
+only the signed IPA to temporary HTTPS hosting so an iPhone can download it.
 
 Made by [AntonP29](https://github.com/AntonP29).
 
@@ -16,6 +18,8 @@ Made by [AntonP29](https://github.com/AntonP29).
 - Simplified main workflow: IPA, P12/PFX, provisioning profiles, optional dylibs,
   password, output IPA name, bundle ID, local cert cache, logs, and local download.
 - Optional certificate/profile/password cache stored in browser IndexedDB.
+- Optional post-sign QR install flow using temporary Litterbox hosting plus Palera's
+  manifest generator.
 - Privacy Policy and Legal pages are included in the app footer.
 - Generated WASM runtime files are committed under `public/wasm/` so a fresh clone can
   run without rebuilding Emscripten/OpenSSL first.
@@ -27,6 +31,11 @@ Made by [AntonP29](https://github.com/AntonP29).
 - Private key material does not need to leave the browser.
 - Signed IPA output is produced as a local browser download.
 - Optional cache data is stored only in this browser's local IndexedDB storage.
+
+The QR install flow is opt-in and not fully local. It uploads only the already-signed
+IPA to Litterbox temporarily so iOS can fetch the file over HTTPS. The certificate,
+provisioning profile, password, and original local inputs are not uploaded by Sylva
+Signer for that flow.
 
 Important trust note: if you use a hosted copy, your browser still downloads the app
 code from that host. Use a domain and build you trust.
@@ -57,6 +66,25 @@ http://localhost:5173
 9. Download the signed IPA from the output panel.
 
 The output name defaults to the input IPA name with `_signed` appended.
+
+## Optional QR Install
+
+After signing succeeds, `Install QR` opens a confirmation dialog. The short disclaimer
+can be clicked to show the limitations before any upload happens.
+
+When the user clicks `Create QR`:
+
+1. The signed IPA is uploaded to Litterbox with a temporary expiration.
+2. Sylva builds a Palera manifest URL from the signed IPA URL and detected app metadata.
+3. The app renders an `itms-services://` QR code and direct install link.
+
+Limitations:
+
+- This path is not fully local because the signed IPA is temporarily hosted.
+- The temporary IPA URL is public while active; do not share it casually.
+- Install success depends on Litterbox, Palera's manifest service, Apple OTA behavior,
+  and a certificate/provisioning profile trusted by the target device.
+- Some networks or regions may block Catbox/Litterbox.
 
 ## Static Hosting
 
