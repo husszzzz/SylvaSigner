@@ -176,10 +176,10 @@ function LegalFooter() {
         certificate, provisioning profile, password, and signed output remain on this device.
       </p>
       <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-        <a className="transition-colors hover:text-blue-500" href="#privacy">
+        <a className="transition-colors hover:text-red-500" href="#privacy">
           Privacy Policy
         </a>
-        <a className="transition-colors hover:text-emerald-500" href="#legal">
+        <a className="transition-colors hover:text-blue-500" href="#legal">
           Legal
         </a>
         <a
