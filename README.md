@@ -1,6 +1,10 @@
-# Sylva Signer
+<p align="center">
+  <img src="public/icon-dark.png" alt="Sylva Signer" width="128" />
+</p>
 
-Modern desktop-Chromium web app for fully local IPA signing in the browser.
+<h1 align="center">Sylva Signer</h1>
+
+<p align="center">Modern desktop-Chromium web app for fully local IPA signing in the browser.</p>
 
 Sylva Signer runs a WebAssembly build of [`zhlynn/zsign`](https://github.com/zhlynn/zsign)
 inside a dedicated browser worker. IPA files, signing certificates, provisioning
