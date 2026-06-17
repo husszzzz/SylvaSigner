@@ -14,8 +14,6 @@ export type TemporaryInstallResult = {
   installUrl: string
 }
 
-export type UploadProgressHandler = (percent: number) => void
-
 const litterboxEndpoint = 'https://litterbox.catbox.moe/resources/internals/api.php'
 const litterboxHost = 'https://litter.catbox.moe/'
 const paleraManifestEndpoint = 'https://api.palera.in/genPlist'
@@ -23,7 +21,6 @@ const paleraManifestEndpoint = 'https://api.palera.in/genPlist'
 export async function uploadSignedIpaToLitterbox(
   output: OutputFile,
   expiry: LitterboxExpiry = '1h',
-  onProgress?: UploadProgressHandler,
 ) {
   const blob = new Blob([output.data], {
     type: output.type || 'application/octet-stream',
@@ -37,26 +34,17 @@ export async function uploadSignedIpaToLitterbox(
   form.append('time', expiry)
   form.append('fileToUpload', new File([blob], fileName, { type: blob.type }))
 
-  const text = await new Promise<string>((resolve, reject) => {
-    const request = new XMLHttpRequest()
-    request.open('POST', litterboxEndpoint)
-    request.upload.onprogress = (event) => {
-      if (!event.lengthComputable) return
-      onProgress?.(Math.min(95, Math.round((event.loaded / event.total) * 95)))
-    }
-    request.onload = () => {
-      if (request.status < 200 || request.status >= 300) {
-        reject(new Error(`Litterbox upload failed with HTTP ${request.status}.`))
-        return
-      }
-      onProgress?.(100)
-      resolve(request.responseText.trim())
-    }
-    request.onerror = () => reject(new Error('Litterbox upload failed.'))
-    request.ontimeout = () => reject(new Error('Litterbox upload timed out.'))
-    request.timeout = 30 * 60 * 1000
-    request.send(form)
+  // Upload progress listeners force a CORS preflight that Litterbox does not
+  // reliably accept. A plain multipart fetch remains a CORS-safelisted request.
+  const response = await fetch(litterboxEndpoint, {
+    method: 'POST',
+    body: form,
   })
+  const text = (await response.text()).trim()
+
+  if (!response.ok) {
+    throw new Error(`Litterbox upload failed with HTTP ${response.status}.`)
+  }
 
   if (!text.startsWith(litterboxHost)) {
     throw new Error(text || 'Litterbox did not return a temporary file URL.')

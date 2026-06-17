@@ -201,3 +201,24 @@
     @apply font-sans;
   }
 }
+
+@keyframes upload-progress {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(310%);
+  }
+}
+
+.upload-progress-indeterminate {
+  animation: upload-progress 1.35s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .upload-progress-indeterminate {
+    animation: none;
+    width: 100%;
+    opacity: 0.65;
+  }
+}

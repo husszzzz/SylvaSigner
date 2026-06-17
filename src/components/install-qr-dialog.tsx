@@ -57,7 +57,6 @@ export function InstallQrDialog({
   const [result, setResult] = React.useState<TemporaryInstallResult | null>(null)
   const [qrDataUrl, setQrDataUrl] = React.useState('')
   const [copied, setCopied] = React.useState(false)
-  const [uploadProgress, setUploadProgress] = React.useState(0)
 
   const canUpload =
     state !== 'uploading' && appName.trim() && bundleId.trim() && version.trim()
@@ -76,11 +75,10 @@ export function InstallQrDialog({
     setCopied(false)
     setResult(null)
     setQrDataUrl('')
-    setUploadProgress(3)
 
     try {
       onLog?.(`Uploading signed IPA to Litterbox for ${expiry}`)
-      const ipaUrl = await uploadSignedIpaToLitterbox(output, expiry, setUploadProgress)
+      const ipaUrl = await uploadSignedIpaToLitterbox(output, expiry)
       const nextResult = buildPaleraInstallUrls(
         {
           appName: appName.trim(),
@@ -101,7 +99,6 @@ export function InstallQrDialog({
 
       setResult(nextResult)
       setQrDataUrl(nextQr)
-      setUploadProgress(100)
       setState('ready')
       onUploaded?.(nextResult, expiry)
       onLog?.('Install QR generated from temporary HTTPS IPA URL')
@@ -110,7 +107,6 @@ export function InstallQrDialog({
         nextError instanceof Error ? nextError.message : String(nextError)
       setError(message)
       setState('error')
-      setUploadProgress(0)
       onLog?.(`Install QR failed: ${message}`)
     }
   }
@@ -258,13 +254,10 @@ export function InstallQrDialog({
               <div className="rounded-xl border border-border bg-muted/30 px-4 py-3">
                 <div className="mb-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
                   <span>Uploading signed IPA</span>
-                  <span className="tabular-nums">{uploadProgress}%</span>
+                  <span>In progress</span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-background">
-                  <div
-                    className="h-full rounded-full bg-yellow-500 transition-all duration-300"
-                    style={{ width: `${uploadProgress}%` }}
-                  />
+                  <div className="upload-progress-indeterminate h-full w-1/3 rounded-full bg-yellow-500" />
                 </div>
               </div>
             )}
