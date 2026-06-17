@@ -1,0 +1,14 @@
+node_modules/
+dist/
+deps/
+tools/emsdk/
+.build/
+.vite/
+.tmp/
+coverage/
+playwright-report/
+test-results/
+public/wasm/*
+!public/wasm/.gitkeep
+*.log
+
