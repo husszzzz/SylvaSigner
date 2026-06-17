@@ -16,12 +16,17 @@ export type TemporaryInstallResult = {
 
 const litterboxEndpoint = 'https://litterbox.catbox.moe/resources/internals/api.php'
 const litterboxHost = 'https://litter.catbox.moe/'
+const litterboxMaxFileSize = 1024 * 1024 * 1024
 const paleraManifestEndpoint = 'https://api.palera.in/genPlist'
 
 export async function uploadSignedIpaToLitterbox(
   output: OutputFile,
   expiry: LitterboxExpiry = '1h',
 ) {
+  if (output.data.byteLength > litterboxMaxFileSize) {
+    throw new Error('Litterbox accepts files up to 1 GB. Choose a smaller signed IPA.')
+  }
+
   const blob = new Blob([output.data], {
     type: output.type || 'application/octet-stream',
   })

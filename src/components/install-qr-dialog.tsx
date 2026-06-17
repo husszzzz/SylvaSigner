@@ -165,7 +165,7 @@ export function InstallQrDialog({
 
             <p className="text-xs leading-5 text-muted-foreground">
               Large signed IPAs may take a while to upload. Keep this tab open until the
-              QR code appears.
+              QR code appears. Litterbox accepts files up to 1 GB.
             </p>
 
             {showLimitations && (
@@ -178,7 +178,8 @@ export function InstallQrDialog({
                 <p className="mt-2">
                   Install success depends on Litterbox, Palera&apos;s manifest
                   generator, Apple OTA behavior, and a certificate trusted by the
-                  iPhone. Some networks or regions may block Catbox/Litterbox.
+                  iPhone. Litterbox does not accept files larger than 1 GB, and some
+                  networks or regions may block Catbox/Litterbox.
                 </p>
               </div>
             )}

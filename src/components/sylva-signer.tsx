@@ -503,29 +503,54 @@ function WelcomeDialog({ onClose }: { onClose: () => void }) {
 
 function LegalFooter() {
   return (
-    <footer className="mt-10 flex flex-col items-center justify-center gap-3 text-center text-xs text-muted-foreground">
-      <p className="max-w-3xl italic leading-5">
-        Sylva Signer runs zsign as WebAssembly inside a dedicated browser worker. Your IPA,
-        certificate, provisioning profile, password, and signed output remain on this device
-        during signing; QR install uploads only the signed IPA after confirmation.
-      </p>
-      <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-        <a className="transition-colors hover:text-red-500" href="#privacy">
-          Privacy Policy
-        </a>
-        <a className="transition-colors hover:text-blue-500" href="#legal">
-          Legal
-        </a>
-        <a
-          className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
-          href="https://github.com/AntonP29"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <GithubIcon size={14} />
-          AntonP29
-        </a>
-      </nav>
+    <footer className="mt-12 border-t border-border pt-6 text-center text-xs text-muted-foreground">
+      <div className="mx-auto flex max-w-3xl flex-col items-center gap-4">
+        <p className="italic leading-5">
+          Sylva Signer runs zsign as WebAssembly inside a dedicated browser worker. Your IPA,
+          certificate, provisioning profile, password, and signed output remain on this device
+          during signing; QR install uploads only the signed IPA after confirmation.
+        </p>
+
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 border-y border-border/70 py-3">
+          <a
+            className="inline-flex items-center gap-1.5 font-medium text-foreground/80 transition-colors hover:text-emerald-500"
+            href="https://github.com/zhlynn/zsign"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <GithubIcon size={14} />
+            Powered by zsign
+          </a>
+          <span className="text-foreground/60">Private WASM port</span>
+          <span className="hidden h-3 w-px bg-border sm:block" aria-hidden="true" />
+          <a
+            className="font-medium text-foreground/80 transition-colors hover:text-amber-500"
+            href="https://litterbox.catbox.moe/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Temporary hosting by Litterbox
+          </a>
+        </div>
+
+        <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+          <a className="transition-colors hover:text-red-500" href="#privacy">
+            Privacy Policy
+          </a>
+          <a className="transition-colors hover:text-blue-500" href="#legal">
+            Legal
+          </a>
+          <a
+            className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+            href="https://github.com/AntonP29"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <GithubIcon size={14} />
+            AntonP29
+          </a>
+        </nav>
+      </div>
     </footer>
   )
 }
