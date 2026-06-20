@@ -1,10 +1,5 @@
 import type { OutputFile, RunZsignOptions, RunZsignResult, VirtualInputFile } from "./types";
-import {
-  archiveMemfsToIpa,
-  archiveOpfsToIpa,
-  extractIpaToMemfs,
-  extractIpaToOpfs
-} from "./browser-zip";
+import { archiveOpfsToIpa, extractIpaToMemfs, extractIpaToOpfs } from "./browser-zip";
 
 type WorkerRequest = {
   id: number;
@@ -41,7 +36,6 @@ const ctx = self as DedicatedWorkerGlobalScope;
 const importModule = new Function("url", "return import(url)") as (url: string) => Promise<ZsignImport>;
 const wasmCacheBust = "wasm_28a6421_streaming_zip_v2";
 const opfsProjectDir = "sylva-zsign";
-const opfsLargeIpaThreshold = 256 * 1024 * 1024;
 
 type BrowserZipPlan = {
   inputPath: string;
@@ -97,11 +91,16 @@ function browserZipPlan(request: WorkerRequest): BrowserZipPlan | null {
   };
 }
 
-function folderSigningArgs(args: string[], plan: BrowserZipPlan, extractedPath: string) {
+function folderSigningArgs(
+  args: string[],
+  plan: BrowserZipPlan,
+  extractedPath: string,
+  nativeArchive: boolean
+) {
   const result: string[] = [];
   for (let index = 0; index < args.length; index++) {
     const arg = args[index];
-    if (arg === "-o" || arg === "--output" || arg === "-z" || arg === "--zip_level") {
+    if (!nativeArchive && (arg === "-o" || arg === "--output" || arg === "-z" || arg === "--zip_level")) {
       index++;
       continue;
     }
@@ -283,7 +282,7 @@ async function executeMemory(
     const completeLine = `>>> Unzip OK! (${((performance.now() - started) / 1000).toFixed(3)}s)`;
     logs.push(completeLine);
     emitLog(completeLine);
-    nativeArgs = folderSigningArgs(request.args, zipPlan, "/work/extracted");
+    nativeArgs = folderSigningArgs(request.args, zipPlan, "/work/extracted", true);
   }
   const result = await runMain(module, nativeArgs, logs, emitLog);
 
@@ -297,37 +296,6 @@ async function executeMemory(
     }
   }
   if (result.trapped) return { exitCode: result.exitCode, logs, outputs: [] };
-
-  if (zipPlan && result.exitCode === 0) {
-    const started = performance.now();
-    const archiveLine = `>>> Archiving:\t${zipPlan.outputPath} ...`;
-    logs.push(archiveLine);
-    emitLog(archiveLine);
-    const output = await archiveMemfsToIpa(
-      FS,
-      "/work/extracted",
-      zipPlan.level,
-      progressEmitter(request, "archive")
-    );
-    const completeLine = `>>> Archive OK! (${(output.size / 1024 / 1024).toFixed(2)} MB) (${(
-      (performance.now() - started) /
-      1000
-    ).toFixed(3)}s)`;
-    logs.push(completeLine);
-    emitLog(completeLine);
-    return {
-      exitCode: result.exitCode,
-      logs,
-      outputs: [
-        {
-          path: zipPlan.outputPath,
-          name: basename(zipPlan.outputPath),
-          type: "application/zip",
-          data: output
-        }
-      ]
-    };
-  }
 
   const outputs: OutputFile[] = [];
   for (const filePath of request.options.outputPaths ?? []) {
@@ -410,17 +378,7 @@ function useOpfs(request: WorkerRequest) {
   const storage = navigator.storage as StorageManagerWithDirectory;
   if (typeof storage?.getDirectory !== "function") return false;
   if (request.options.storageMode === "opfs") return true;
-
-  const totalBytes = request.files.reduce((sum, entry) => sum + entry.file.size, 0);
-  const iosWebKit = /iPad|iPhone|iPod/i.test(navigator.userAgent);
-  if (iosWebKit) return false;
-  const mobile = /Android|iPad|iPhone|iPod|Mobile/i.test(navigator.userAgent);
-  const deviceMemory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
-  return (
-    totalBytes >= opfsLargeIpaThreshold ||
-    (deviceMemory !== undefined && deviceMemory <= 4) ||
-    (mobile && deviceMemory === undefined)
-  );
+  return false;
 }
 
 async function executeOpfs(
@@ -467,7 +425,7 @@ async function executeOpfs(
       const completeLine = `>>> Unzip OK! (${((performance.now() - started) / 1000).toFixed(3)}s)`;
       logs.push(completeLine);
       emitLog(completeLine);
-      nativeArgs = folderSigningArgs(request.args, zipPlan, `/${extractedRelative}`);
+      nativeArgs = folderSigningArgs(request.args, zipPlan, `/${extractedRelative}`, false);
     }
 
     const module = await loadModule("zsign-opfs", logs, emitLog);

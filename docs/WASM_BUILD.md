@@ -14,8 +14,8 @@ npm run build
 The build emits two runtime variants:
 
 - `public/wasm/zsign.mjs` and `zsign.wasm`: WORKERFS input with MEMFS working files.
-- `public/wasm/zsign-opfs.mjs` and `zsign-opfs.wasm`: WasmFS/OPFS working files for
-  lower peak memory use on mobile and large IPAs.
+- `public/wasm/zsign-opfs.mjs` and `zsign-opfs.wasm`: experimental WasmFS/OPFS working
+  files; this variant is not selected automatically.
 
 Set `ZSIGN_WASM_VARIANT` to `memory` or `opfs` to rebuild one variant incrementally
 during development. The default `all` build starts from clean objects and produces both.
@@ -25,12 +25,10 @@ entry point is invoked through an async `ccall` wrapper, and its C stack is enla
 archive traversal. Emscripten links in a staging directory before publishing completed
 artifacts so a running Vite server cannot race the optimizer on Windows.
 
-The worker uses `@zip.js/zip.js` for the main IPA workflow. ZIP entries stream through
-browser compression APIs into MEMFS for fast synchronous signing, or into OPFS on
-lower-memory devices. The signed tree is streamed back into a compressed `Blob`, avoiding
-zsign's slow Asyncify ZIP loop and an additional full-size output `ArrayBuffer` copy.
-The archive writer receives each file's exact size, emits explicit directory entries, and
-disables unnecessary ZIP64 records so the resulting IPA remains compatible with iOS
-installation tooling.
+The worker uses `@zip.js/zip.js` to stream IPA entries through browser decompression APIs
+into MEMFS for fast synchronous signing. It then
+passes the extracted folder to upstream zsign with the original output and compression
+arguments intact. zsign's minizip implementation creates the final IPA, preserving its
+file ordering, headers, directory records, attributes, and CLI behavior.
 
 The web app keeps signing local to the browser worker. `-i/--install` and live OCSP socket checks are intentionally unsupported in browser-only mode.

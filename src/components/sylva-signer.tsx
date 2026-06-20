@@ -753,6 +753,9 @@ function SignerApp() {
       if (cleanLine.includes('unzip ok') || cleanLine.includes('archive ok')) {
         setConsoleActivity(null)
       }
+      if (cleanLine.includes('archiving:')) {
+        setConsoleActivity({ label: 'Archiving signed IPA' })
+      }
       const parsedMetadata = parseInstallMetadataLine(line)
       if (parsedMetadata) {
         installMetadataRef.current = { ...installMetadataRef.current, ...parsedMetadata }
@@ -1152,9 +1155,9 @@ function SignerApp() {
 
           <p className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-xs leading-5 text-muted-foreground">
             Large IPAs can be slow because unzipping, signing, and re-archiving happen
-            locally. Supported mobile browsers and large-file jobs use lower-memory
-            browser storage automatically. Keep this tab open and ensure the device has
-            enough free storage. QR install uploads the signed IPA only after you confirm.
+            locally. Keep this tab open and ensure the device has several times the IPA
+            size available as free memory. QR install uploads the signed IPA only after
+            you confirm.
           </p>
         </div>
 

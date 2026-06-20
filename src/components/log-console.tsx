@@ -16,7 +16,7 @@ export interface LogEntry {
 
 export interface ConsoleActivity {
   label: string
-  percent: number
+  percent?: number
 }
 
 const levelStyles: Record<LogLevel, string> = {
@@ -107,7 +107,8 @@ export function LogConsole({
                 <span className="shrink-0 font-semibold text-sky-400">WAIT</span>
                 <span className="flex min-w-0 items-center gap-1 text-foreground/90">
                   <span className="break-words">
-                    {activity.label} · {activity.percent}%
+                    {activity.label}
+                    {activity.percent !== undefined ? ` · ${activity.percent}%` : ''}
                   </span>
                   <span className="inline-flex items-end gap-0.5" aria-hidden="true">
                     {[0, 1, 2].map((index) => (

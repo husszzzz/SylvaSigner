@@ -139,7 +139,7 @@ test("initializes the low-memory OPFS zsign runtime in a worker", async ({ page 
   expect(result.logs.join("\n")).toContain("Invalid path!");
 });
 
-test("streams IPA extraction and archiving outside zsign", async ({ page }) => {
+test("streams IPA extraction before native zsign archiving", async ({ page }) => {
   await page.goto("/");
   const workerAsset = readdirSync("dist/assets").find((name) => name.startsWith("zsign-worker-"));
   expect(workerAsset).toBeTruthy();
@@ -169,7 +169,9 @@ test("streams IPA extraction and archiving outside zsign", async ({ page }) => {
           const outputBytes =
             output?.data instanceof Blob
               ? Array.from(new Uint8Array(await output.data.arrayBuffer()))
-              : undefined;
+              : output?.data instanceof ArrayBuffer
+                ? Array.from(new Uint8Array(output.data))
+                : undefined;
           resolve({
             exitCode: message.result?.exitCode,
             logs,
@@ -198,12 +200,12 @@ test("streams IPA extraction and archiving outside zsign", async ({ page }) => {
 
   expect(result.error).toBeUndefined();
   expect(result.exitCode).toBe(0);
-  expect(result.outputIsBlob).toBe(true);
+  expect(result.outputIsBlob).toBe(false);
   expect(result.outputSize).toBeGreaterThan(0);
   expect(result.logs.join("\n")).toContain("Unzip OK!");
   expect(result.logs.join("\n")).toContain("Archive OK!");
   expect(result.progress).toContain("extract");
-  expect(result.progress).toContain("archive");
+  expect(result.progress).not.toContain("archive");
 
   const archive = new ZipReader(new Uint8ArrayReader(new Uint8Array(result.outputBytes!)));
   const entries = await archive.getEntries();
@@ -211,4 +213,9 @@ test("streams IPA extraction and archiving outside zsign", async ({ page }) => {
   expect(entries[0]).toMatchObject({ filename: "Payload/", directory: true });
   expect(entries.some((entry) => entry.directory)).toBe(true);
   expect(entries.every((entry) => !entry.zip64)).toBe(true);
+  expect(entries.every((entry) => entry.msDosCompatible)).toBe(true);
+  expect(entries.every((entry) => !entry.filenameUTF8)).toBe(true);
+  const firstHeader = new DataView(new Uint8Array(result.outputBytes!).buffer);
+  expect(firstHeader.getUint32(0, true)).toBe(0x04034b50);
+  expect(firstHeader.getUint16(6, true) & 0x808).toBe(0);
 });

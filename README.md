@@ -24,20 +24,19 @@ Made by [AntonP29](https://github.com/AntonP29). Project status: June 17, 2026.
 
 - Local IPA signing with zsign compiled to WebAssembly.
 - Dedicated browser worker so signing does not block the interface.
-- Automatic low-memory browser-storage mode for mobile devices and large IPAs.
-- Streaming ZIP extraction/creation with bounded parallel decompression and native
-  browser compression streams when available.
+- Streaming ZIP extraction with bounded parallel decompression and native browser
+  decompression streams when available, followed by zsign-native IPA archiving.
 - Conventional non-ZIP64 IPA output with explicit directory records for iOS installer
   compatibility.
 - Live, internally scrolling zsign console output.
-- Transient animated `WAIT` status with byte-based percentage during extraction and
-  archive compression, making long local operations visibly active without polluting logs.
+- Transient animated `WAIT` status with byte-based extraction progress and indeterminate
+  native archive activity, making long local operations visibly active without polluting logs.
 - Signing-stage progress based on zsign log milestones.
 - IPA, P12/PFX, provisioning profile, optional dylib, password, output name, and bundle
   ID controls.
 - Output names default to the input name with `_signed` appended.
-- Signed IPAs use browser-native ZIP compression by default to avoid the large output
-  inflation caused by uncompressed (`-z 0`) archives.
+- Signed IPAs use zsign's native minizip writer and compressed output for parity with the
+  upstream CLI and iOS installation tooling.
 - Optional P12/profile/password cache stored in browser IndexedDB.
 - Cached signing files and password are restored into the visible controls on reload.
 - Browser-local `Previous IPAs` history with `Fully Local`, `Active`, and `Expired`
@@ -116,23 +115,21 @@ accepts files up to **1 GB**; Sylva rejects larger upload attempts before sendin
     hosting.
 
 Large IPAs can still take significant time because extraction, signing, and re-archiving
-use the device's CPU and storage. Sylva streams ZIP entries through browser compression
-APIs and uses bounded parallel extraction. Devices reporting 4 GB of memory or less,
-mobile browsers that do not expose memory information, and IPAs of at least 256 MB use
-Origin Private File System (OPFS) storage for lower peak memory use. Keep the tab open
-and ensure the device has enough free browser storage for the extracted app and signed
-output.
+use the device's CPU and storage. Sylva streams ZIP entries through browser decompression
+APIs and uses bounded parallel extraction. The stable signing path currently keeps the
+extracted tree in WebAssembly memory, so keep the tab open and leave several times the
+IPA size available as free memory. The OPFS runtime remains experimental and is not
+selected automatically because its asynchronous filesystem can destabilize full signing.
 
 In a local Chromium comparison using a 93.06 MB IPA with 10,691 ZIP entries (about
-233 MB extracted), the previous zsign ZIP path took 282.8 seconds end-to-end. The
-streaming path completed in 50.3 seconds: 20.6 seconds extraction, 8.1 seconds signing,
-and 21.5 seconds archiving. Results vary by device and IPA structure.
+233 MB extracted), zsign's previous WASM extraction path took 263.2 seconds. The bounded
+browser extraction path completed in about 20.6 seconds, after which signing and archive
+creation remain in upstream zsign. Results vary by device and IPA structure.
 
 The signed IPA may still differ modestly in size from the input because Mach-O code
-signature regions can grow and the archive is recompressed. It should no longer exhibit
-the much larger inflation caused by an uncompressed ZIP output. The streaming writer
-retains explicit `Payload/` directory records and avoids ZIP64 metadata, matching the
-conservative structure expected by iOS installation tooling.
+signature regions can grow and the archive is recompressed. Archive creation is delegated
+back to zsign's minizip implementation so file order, directory records, flags, attributes,
+and compression behavior match the upstream CLI.
 
 ## Previous IPAs
 
@@ -250,9 +247,10 @@ Pinned inputs:
 - zsign commit `28a6421`
 
 The standard build uses `WORKERFS` for certificate inputs, MEMFS for synchronous signing,
-and `IDBFS` for the persistent zsign cache. ZIP data is streamed into and out of MEMFS by
-the browser rather than zsign's native ZIP loop. The low-memory build uses WasmFS with
-OPFS and Asyncify so extracted app contents remain in browser-managed storage.
+and `IDBFS` for the persistent zsign cache. ZIP input is streamed into MEMFS by the browser,
+while signed IPA output is created by zsign's native minizip path. An experimental build
+uses WasmFS with OPFS and Asyncify, but automatic selection is disabled until full signing
+is reliable on that backend.
 Browser-specific patches and upstream details are documented in
 [`docs/UPSTREAM.md`](docs/UPSTREAM.md) and [`docs/WASM_BUILD.md`](docs/WASM_BUILD.md).
 
@@ -271,14 +269,12 @@ normal page load.
 ## Browser and Platform Limits
 
 - Current Chromium is the primary browser target on desktop and Android.
-- Lower-memory devices and IPAs of at least 256 MB use OPFS automatically when the
-  browser supports it, with an automatic fallback to memory mode if setup fails.
-- iOS browsers use Apple's WebKit engine even when branded as Chrome. The pinned
-  Emscripten OPFS backend is not currently treated as a reliable iOS path, so large IPA
-  signing on iPhone/iPad remains more constrained than Android Chromium.
+- The stable path uses WebAssembly memory; the experimental OPFS runtime is not selected
+  automatically.
+- iOS browsers use Apple's WebKit engine even when branded as Chrome, so large IPA
+  signing on iPhone/iPad remains constrained by WebKit memory limits.
 - Large IPA performance depends on device CPU, memory, storage, and browser limits.
-- ZIP progress is byte-based; signing progress between extraction and archiving is
-  estimated from zsign log stages.
+- Extraction progress is byte-based; native zsign archive activity is indeterminate.
 - Litterbox upload progress is indeterminate for CORS compatibility.
 - Native `-i/--install` through `ideviceinstaller` is unsupported in browser-only mode.
 - Raw-socket live OCSP checks are unsupported in browser WebAssembly.
