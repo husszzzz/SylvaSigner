@@ -3,7 +3,7 @@
     "target": "ES2022",
     "useDefineForClassFields": true,
     "module": "ESNext",
-    "lib": ["ES2022", "DOM", "WebWorker"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
     "skipLibCheck": true,
     "moduleResolution": "Bundler",
     "allowImportingTsExtensions": true,

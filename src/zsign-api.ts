@@ -73,7 +73,10 @@ function pushIf(args: string[], condition: unknown, flag: string, value?: string
   if (value !== undefined) args.push(value);
 }
 
-export function signIpa(options: SignIpaOptions, runOptions: Pick<RunZsignOptions, "onLog"> = {}): Promise<RunZsignResult> {
+export function signIpa(
+  options: SignIpaOptions,
+  runOptions: Pick<RunZsignOptions, "onLog" | "storageMode"> = {}
+): Promise<RunZsignResult> {
   const outputName = safeName(options.outputName || `signed-${options.ipa.name}`, "signed.ipa");
   const outputPath = `/output/${outputName.endsWith(".ipa") ? outputName : `${outputName}.ipa`}`;
   const metadataPath = "/output/metadata";
@@ -141,7 +144,7 @@ export function signIpa(options: SignIpaOptions, runOptions: Pick<RunZsignOption
   pushIf(args, options.minimumVersion, "-M", options.minimumVersion);
   pushIf(args, options.metadata, "-x", metadataPath);
 
-  args.push("-z", String(options.zipLevel ?? 0));
+  args.push("-z", String(options.zipLevel ?? 1));
   args.push("-o", outputPath);
   pushIf(args, options.password, "-p", options.password);
   args.push(ipaPath);

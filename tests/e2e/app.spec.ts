@@ -58,3 +58,53 @@ test("opens previous IPA history from the header", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Previous IPAs" })).toBeVisible();
   await expect(page.getByText("No signed IPA history yet.")).toBeVisible();
 });
+
+test("initializes the low-memory OPFS zsign runtime in a worker", async ({ page }) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const root = await navigator.storage.getDirectory();
+    const project = await root.getDirectoryHandle("sylva-zsign", { create: true });
+    const work = await project.getDirectoryHandle("work", { create: true });
+    await work.getDirectoryHandle(".zsign_cache", { create: true });
+
+    const wasmBase = `${location.origin}/wasm`;
+    const source = `
+      self.onmessage = async () => {
+        const logs = [];
+        try {
+          const imported = await import('${wasmBase}/zsign-opfs.mjs');
+          const module = await imported.default({
+            noInitialRun: true,
+            locateFile: (file) => '${wasmBase}/' + file,
+            print: (...parts) => logs.push(parts.map(String).join(' ')),
+            printErr: (...parts) => logs.push(parts.map(String).join(' ')),
+          });
+          const exitCode = await module.ccall(
+            'zsign_run_args',
+            'number',
+            ['string'],
+            ['-a\\x1f/opfs/sylva-zsign/work/missing.ipa'],
+            { async: true },
+          );
+          self.postMessage({ exitCode, logs });
+        } catch (error) {
+          self.postMessage({ error: error instanceof Error ? error.stack : String(error), logs });
+        }
+      };
+    `;
+    const worker = new Worker(URL.createObjectURL(new Blob([source], { type: "text/javascript" })), {
+      type: "module"
+    });
+    return await new Promise<{ exitCode?: number; logs: string[]; error?: string }>((resolve) => {
+      worker.onmessage = (event) => {
+        worker.terminate();
+        resolve(event.data);
+      };
+      worker.postMessage(null);
+    });
+  });
+
+  expect(result.error).toBeUndefined();
+  expect(result.exitCode).toBe(-1);
+  expect(result.logs.join("\n")).toContain("Invalid path!");
+});

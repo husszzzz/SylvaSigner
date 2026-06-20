@@ -12,6 +12,10 @@
 #ifdef _WIN32
 #include "common_win32.h"
 #endif
+#ifdef ZSIGN_WASM_OPFS
+#include <emscripten/emscripten.h>
+#include <emscripten/wasmfs.h>
+#endif
 
 #ifndef ZSIGN_VERSION
 #define ZSIGN_VERSION 0.0.0-dev
@@ -97,6 +101,20 @@ int main(int argc, char* argv[])
 {
 #ifdef __EMSCRIPTEN__
 	optind = 1;
+#endif
+#ifdef ZSIGN_WASM_OPFS
+	static bool opfsMounted = false;
+	if (!opfsMounted) {
+		backend_t opfs = wasmfs_create_opfs_backend();
+		if (0 != wasmfs_create_directory("/opfs", 0777, opfs)) {
+			ZLog::Error("Browser storage could not be mounted.\n");
+			return -1;
+		}
+		opfsMounted = true;
+	}
+	// Keep zsign's relative cache on persistent browser storage. The worker
+	// creates this directory before loading the module.
+	chdir("/opfs/sylva-zsign/work");
 #endif
 
 	ZTimer atimer;
@@ -430,3 +448,26 @@ int main(int argc, char* argv[])
 	gtimer.Print(">>> Done.");
 	return bRet ? 0 : -1;
 }
+
+#ifdef ZSIGN_WASM_OPFS
+extern "C" EMSCRIPTEN_KEEPALIVE int zsign_run_args(const char* encodedArgs)
+{
+	vector<string> args;
+	args.push_back("zsign");
+	string encoded = encodedArgs ? encodedArgs : "";
+	size_t start = 0;
+	while (start <= encoded.size()) {
+		size_t end = encoded.find('\x1f', start);
+		args.push_back(encoded.substr(start, end - start));
+		if (string::npos == end) break;
+		start = end + 1;
+	}
+
+	vector<char*> argv;
+	for (size_t i = 0; i < args.size(); i++) {
+		argv.push_back(&args[i][0]);
+	}
+	argv.push_back(NULL);
+	return main((int)args.size(), argv.data());
+}
+#endif

@@ -49,16 +49,23 @@ bool Zip::_WriteFileToZip(void* hZip, const string& strFile, const string& strRe
 	}
 
 	bool bRet = true;
-	char buffer[4096];
-	size_t bytes_read = fread(buffer, 1, sizeof(buffer), fp);
+	const size_t bufferSize = 256 * 1024;
+	char* buffer = (char*)malloc(bufferSize);
+	if (NULL == buffer) {
+		zipCloseFileInZip(hZip);
+		fclose(fp);
+		return false;
+	}
+	size_t bytes_read = fread(buffer, 1, bufferSize, fp);
 	while (bytes_read > 0) {
 		if (zipWriteInFileInZip(hZip, buffer, (uint32_t)bytes_read) < 0) {
 			bRet = false;
 			break;
 		}
-		bytes_read = fread(buffer, 1, sizeof(buffer), fp);
+		bytes_read = fread(buffer, 1, bufferSize, fp);
 	}
 
+	free(buffer);
 	zipCloseFileInZip(hZip);
 	fclose(fp);
 	return bRet;
@@ -165,7 +172,7 @@ bool Zip::_EnumZipItems(const char* zip_file, enum_zip_items_callback callback)
 		}
 
 		if (NULL != callback) {
-			if (!callback(uf, bFolder, strPath)) {
+			if (!callback(uf, bFolder, strPath, fi.uncompressed_size)) {
 				bRet = false;
 				break;
 			}
@@ -183,7 +190,7 @@ bool Zip::_EnumZipItems(const char* zip_file, enum_zip_items_callback callback)
 	return bRet;
 }
 
-bool Zip::_ReadFileFromZip(void* hZip, const string& strPath, const string& strRootFolder)
+bool Zip::_ReadFileFromZip(void* hZip, const string& strPath, const string& strRootFolder, uint64_t uncompressedSize)
 {
 	string strFile = strRootFolder + "/" + strPath;
 	string strFolder = strFile;
@@ -203,8 +210,17 @@ bool Zip::_ReadFileFromZip(void* hZip, const string& strPath, const string& strR
 		return false;
 	}
 
+#if defined(__EMSCRIPTEN__) && !defined(ZSIGN_WASM_OPFS)
+	// MEMFS grows file storage by allocating and copying larger typed arrays.
+	// ZIP metadata gives us the final size, so allocate once before extraction.
+	if (uncompressedSize > 0 && uncompressedSize <= (uint64_t)SIZE_MAX) {
+		ftruncate(fileno(fp), (off_t)uncompressedSize);
+		_fseeki64(fp, 0, SEEK_SET);
+	}
+#endif
+
 	bool bRet = true;
-	uint32_t uBufSize = 512 * 1024;
+	uint32_t uBufSize = 1024 * 1024;
 	char* pbuff = (char*)malloc(uBufSize);
 	if (NULL != pbuff) {
 		int32_t nReaded = unzReadCurrentFile(hZip, pbuff, uBufSize);
@@ -249,7 +265,7 @@ static bool _IsPathSafe(const string& strPath)
 
 bool Zip::_Extract(const char* zip_file, const char* output_folder)
 {
-	return _EnumZipItems(zip_file, [&](unzFile uFile, bool bFolder, const string& strPath) {
+	return _EnumZipItems(zip_file, [&](unzFile uFile, bool bFolder, const string& strPath, uint64_t uncompressedSize) {
 		if (!_IsPathSafe(strPath)) {
 			ZLog::ErrorV(">>> Zip: Skipping unsafe path: %s\n", strPath.c_str());
 			return true;
@@ -259,7 +275,7 @@ bool Zip::_Extract(const char* zip_file, const char* output_folder)
 				return false;
 			}
 		} else {
-			if (!_ReadFileFromZip(uFile, strPath, output_folder)) {
+			if (!_ReadFileFromZip(uFile, strPath, output_folder, uncompressedSize)) {
 				return false;
 			}
 		}

@@ -17,6 +17,7 @@ export interface RunZsignOptions {
   outputPaths?: string[];
   collectDirectories?: string[];
   persistCache?: boolean;
+  storageMode?: "auto" | "memory" | "opfs";
   onLog?: (line: string) => void;
 }
 

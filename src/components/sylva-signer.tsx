@@ -198,6 +198,7 @@ function parseInstallMetadataLine(line: string) {
 
 function signingProgressForLine(line: string, current: ProgressState): ProgressState {
   const clean = cleanLogLine(line).toLowerCase()
+  if (clean.includes('storage: browser disk mode')) return { value: Math.max(current.value, 8), label: 'Preparing low-memory browser storage' }
   if (clean.includes('unzip:')) return { value: Math.max(current.value, 12), label: 'Unzipping IPA locally' }
   if (clean.includes('unzip ok')) return { value: Math.max(current.value, 25), label: 'IPA extracted' }
   if (clean.includes('signing:')) return { value: Math.max(current.value, 34), label: 'Preparing app signature' }
@@ -473,7 +474,9 @@ function WelcomeDialog({ onClose }: { onClose: () => void }) {
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               Sylva Signer is a browser-based proof of concept for local IPA signing.
               Large files can take time because extraction, signing, and archiving happen
-              on this device in browser memory. Direct iPhone installation requires an
+              on this device. Supported mobile browsers and large-file jobs use
+              browser-managed storage to reduce memory pressure. Direct iPhone
+              installation requires an
               HTTPS-hosted IPA, so the built-in QR flow uploads only the signed IPA to a
               temporary provider after your explicit agreement.
             </p>
@@ -800,7 +803,7 @@ function SignerApp() {
       password: certPassword || (cacheCert ? cachedCertInfo?.password ?? '' : ''),
       outputName: outputName.trim() || defaultOutputName(ipa[0]),
       bundleId: bundleId.trim(),
-      zipLevel: 0,
+      zipLevel: 1,
       metadata: false,
     }
   }, [bundleId, cacheCert, cachedCertInfo, certPassword, dylibs, ipa, outputName, p12, profiles])
@@ -1125,8 +1128,9 @@ function SignerApp() {
 
           <p className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-xs leading-5 text-muted-foreground">
             Large IPAs can be slow because unzipping, signing, and re-archiving happen
-            locally in browser memory. Keep this tab open; peak memory can be several
-            times the IPA size. QR install uploads the signed IPA only after you confirm.
+            locally. Supported mobile browsers and large-file jobs use lower-memory
+            browser storage automatically. Keep this tab open and ensure the device has
+            enough free storage. QR install uploads the signed IPA only after you confirm.
           </p>
         </div>
 
