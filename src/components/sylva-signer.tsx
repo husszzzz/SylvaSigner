@@ -13,6 +13,7 @@ import { FileDrop } from '@/components/file-drop'
 import { InstallQrDialog } from '@/components/install-qr-dialog'
 import {
   LogConsole,
+  type ConsoleActivity,
   type LogEntry,
   type LogLevel,
 } from '@/components/log-console'
@@ -697,6 +698,7 @@ function SignerApp() {
     value: 0,
     label: 'Waiting to sign',
   })
+  const [consoleActivity, setConsoleActivity] = React.useState<ConsoleActivity | null>(null)
   const [historyEntries, setHistoryEntries] = React.useState<IpaHistoryEntry[]>([])
   const [historyDialogOpen, setHistoryDialogOpen] = React.useState(false)
   const [welcomeOpen, setWelcomeOpen] = React.useState(true)
@@ -747,6 +749,10 @@ function SignerApp() {
 
   const addWorkerLog = React.useCallback(
     (line: string) => {
+      const cleanLine = cleanLogLine(line).toLowerCase()
+      if (cleanLine.includes('unzip ok') || cleanLine.includes('archive ok')) {
+        setConsoleActivity(null)
+      }
       const parsedMetadata = parseInstallMetadataLine(line)
       if (parsedMetadata) {
         installMetadataRef.current = { ...installMetadataRef.current, ...parsedMetadata }
@@ -760,9 +766,12 @@ function SignerApp() {
 
   const updateWorkerProgress = React.useCallback((progress: ZsignProgress) => {
     const ratio = progress.total > 0 ? Math.min(1, progress.completed / progress.total) : 1
+    const percent = Math.round(ratio * 100)
     if (progress.phase === 'extract') {
+      setConsoleActivity({ label: 'Unzipping IPA locally', percent })
       setSignProgress({ value: Math.round(10 + ratio * 15), label: 'Streaming IPA into browser storage' })
     } else {
+      setConsoleActivity({ label: 'Compressing signed IPA', percent })
       setSignProgress({ value: Math.round(90 + ratio * 9), label: 'Compressing signed IPA' })
     }
   }, [])
@@ -825,6 +834,7 @@ function SignerApp() {
     installMetadataRef.current = {}
     setInstallDialogOpen(false)
     setCurrentHistoryId('')
+    setConsoleActivity(null)
     setSignProgress({ value: 5, label: 'Starting local signing session' })
 
     try {
@@ -854,6 +864,7 @@ function SignerApp() {
         label: result.exitCode === 0 ? 'Signing complete' : 'Signing stopped',
       }))
       setState(result.exitCode === 0 ? 'done' : 'error')
+      setConsoleActivity(null)
     } catch (error) {
       addLog('error', error instanceof Error ? error.message : String(error))
       setSignProgress((current) => ({
@@ -861,6 +872,7 @@ function SignerApp() {
         label: 'Signing failed',
       }))
       setState('error')
+      setConsoleActivity(null)
     }
   }
 
@@ -885,6 +897,7 @@ function SignerApp() {
     setInstallDialogOpen(false)
     setCurrentHistoryId('')
     setSignProgress({ value: 0, label: 'Waiting to sign' })
+    setConsoleActivity(null)
     if (!cacheCert) setCertPassword('')
     setState('idle')
   }
@@ -1147,7 +1160,11 @@ function SignerApp() {
 
         <div className="flex min-h-[420px] min-w-0 flex-col lg:min-h-0">
           <div className="h-[420px] max-h-[520px] lg:h-[calc(100vh-12rem)] lg:max-h-[680px]">
-            <LogConsole logs={logs} active={state === 'signing'} />
+            <LogConsole
+              logs={logs}
+              active={state === 'signing'}
+              activity={consoleActivity}
+            />
           </div>
 
           {state === 'done' && outputs.length > 0 && (

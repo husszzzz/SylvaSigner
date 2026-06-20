@@ -14,6 +14,11 @@ export interface LogEntry {
   message: string
 }
 
+export interface ConsoleActivity {
+  label: string
+  percent: number
+}
+
 const levelStyles: Record<LogLevel, string> = {
   info: 'text-muted-foreground',
   success: 'text-emerald-500',
@@ -30,14 +35,22 @@ const levelLabel: Record<LogLevel, string> = {
   step: 'STEP',
 }
 
-export function LogConsole({ logs, active = false }: { logs: LogEntry[]; active?: boolean }) {
+export function LogConsole({
+  logs,
+  active = false,
+  activity,
+}: {
+  logs: LogEntry[]
+  active?: boolean
+  activity?: ConsoleActivity | null
+}) {
   const logsRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
     const logsElement = logsRef.current
     if (!logsElement) return
     logsElement.scrollTop = logsElement.scrollHeight
-  }, [logs])
+  }, [activity, logs])
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card">
@@ -86,6 +99,28 @@ export function LogConsole({ logs, active = false }: { logs: LogEntry[]; active?
                 </span>
               </div>
             ))}
+            {activity && (
+              <div className="flex items-center gap-3" role="status" aria-live="polite">
+                <span className="shrink-0 text-muted-foreground/50 tabular-nums">
+                  --:--:--
+                </span>
+                <span className="shrink-0 font-semibold text-sky-400">WAIT</span>
+                <span className="flex min-w-0 items-center gap-1 text-foreground/90">
+                  <span className="break-words">
+                    {activity.label} · {activity.percent}%
+                  </span>
+                  <span className="inline-flex items-end gap-0.5" aria-hidden="true">
+                    {[0, 1, 2].map((index) => (
+                      <span
+                        key={index}
+                        className="inline-block h-1 w-1 animate-bounce rounded-full bg-sky-400 motion-reduce:animate-pulse"
+                        style={{ animationDelay: `${index * 140}ms` }}
+                      />
+                    ))}
+                  </span>
+                </span>
+              </div>
+            )}
           </div>
         )}
       </div>

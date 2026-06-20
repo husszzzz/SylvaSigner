@@ -28,6 +28,8 @@ Made by [AntonP29](https://github.com/AntonP29). Project status: June 17, 2026.
 - Streaming ZIP extraction/creation with bounded parallel decompression and native
   browser compression streams when available.
 - Live, internally scrolling zsign console output.
+- Transient animated `WAIT` status with byte-based percentage during extraction and
+  archive compression, making long local operations visibly active without polluting logs.
 - Signing-stage progress based on zsign log milestones.
 - IPA, P12/PFX, provisioning profile, optional dylib, password, output name, and bundle
   ID controls.
