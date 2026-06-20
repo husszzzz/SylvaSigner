@@ -43,6 +43,7 @@ import {
   upsertIpaHistoryEntry,
   type IpaHistoryEntry,
 } from '@/history-api'
+import { resolveProvisioningCompatibility } from '@/provisioning-profile'
 import { saveOutput, signIpa } from '@/zsign-api'
 import type { OutputFile, SignIpaOptions, ZsignProgress } from '@/types'
 
@@ -842,7 +843,17 @@ function SignerApp() {
 
       addLog('step', 'Initializing local WebAssembly signing session')
       addLog('info', `Loaded payload: ${ipa[0]?.name ?? 'pending'}`)
-      const result = await signIpa(buildSignOptions(), {
+      const signOptions = buildSignOptions()
+      const compatibility = await resolveProvisioningCompatibility(
+        signOptions.profiles ?? [],
+        signOptions.bundleId,
+        signOptions.removeExtensions,
+      )
+      signOptions.bundleId = compatibility.bundleId
+      signOptions.removeExtensions = compatibility.removeExtensions
+      compatibility.notices.forEach((notice) => addLog('warn', notice))
+
+      const result = await signIpa(signOptions, {
         onLog: addWorkerLog,
         onProgress: updateWorkerProgress,
       })
@@ -1050,7 +1061,7 @@ function SignerApp() {
                 <Label htmlFor="bundle-id">Custom bundle ID</Label>
                 <Input
                   id="bundle-id"
-                  placeholder="Leave blank for original"
+                  placeholder="Original when profile permits"
                   value={bundleId}
                   onChange={(e) => setBundleId(e.target.value)}
                 />

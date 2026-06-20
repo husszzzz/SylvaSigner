@@ -35,6 +35,8 @@ Made by [AntonP29](https://github.com/AntonP29). Project status: June 17, 2026.
 - Signing-stage progress based on zsign log milestones.
 - IPA, P12/PFX, provisioning profile, optional dylib, password, output name, and bundle
   ID controls.
+- Provisioning preflight for fixed App ID profiles, including automatic use of the
+  required bundle ID and removal of extensions that a lone fixed profile cannot sign.
 - Output names default to the input name with `_signed` appended.
 - Signed IPAs use browser-native ZIP compression by default to avoid the large output
   inflation caused by uncompressed (`-z 0`) archives.
@@ -114,6 +116,12 @@ accepts files up to **1 GB**; Sylva rejects larger upload attempts before sendin
 9. Download the signed IPA locally.
 10. Optionally choose `Install QR`, review the limitations, and approve temporary
     hosting.
+
+When the primary profile contains a fixed application identifier instead of a wildcard,
+Sylva uses that required bundle ID automatically if the bundle ID field is blank. A single
+fixed profile cannot provision nested `.appex` bundles with distinct identifiers, so Sylva
+removes those extensions and records the change in the console. Supply matching profiles
+for the main app and each extension to preserve them.
 
 Large IPAs can still take significant time because extraction, signing, and re-archiving
 use the device's CPU and storage. Sylva streams ZIP entries through browser compression
@@ -261,6 +269,7 @@ Browser-specific patches and upstream details are documented in
 ```powershell
 npm run build
 npm run wasm:smoke
+npm run test:unit
 npm run test:e2e
 ```
 
@@ -283,6 +292,8 @@ normal page load.
 - Native `-i/--install` through `ideviceinstaller` is unsupported in browser-only mode.
 - Raw-socket live OCSP checks are unsupported in browser WebAssembly.
 - Native `system()` operations are stubbed as unsupported.
+- A single fixed App ID provisioning profile cannot preserve app extensions; matching
+  extension profiles are required for multi-profile signing.
 - Third-party OTA installation can fail even when signing succeeds.
 
 ## Security Notes
