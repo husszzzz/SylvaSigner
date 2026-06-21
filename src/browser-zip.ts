@@ -13,9 +13,19 @@ type IterableDirectoryHandle = FileSystemDirectoryHandle & {
 };
 
 function extractionConcurrency() {
-  const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
+  const browser = navigator as Navigator & {
+    deviceMemory?: number;
+    userAgentData?: { mobile?: boolean };
+  };
+  const mobile =
+    browser.userAgentData?.mobile === true ||
+    /Android|iPad|iPhone|iPod|Mobile/i.test(browser.userAgent) ||
+    (/Macintosh/i.test(browser.userAgent) && browser.maxTouchPoints > 1);
+  if (mobile) return 1;
+
+  const memory = browser.deviceMemory;
   const memoryLimit = memory !== undefined && memory <= 4 ? 2 : 4;
-  const cpuLimit = Math.max(1, Math.floor((navigator.hardwareConcurrency || 2) / 2));
+  const cpuLimit = Math.max(1, Math.floor((browser.hardwareConcurrency || 2) / 2));
   return Math.min(memoryLimit, cpuLimit);
 }
 
@@ -138,6 +148,8 @@ export async function extractIpaToMemfs(
       }
       ensureMemfsDirectory(FS, path.slice(0, path.lastIndexOf("/")));
       const stream = FS.open(path, "w");
+      if (entry.uncompressedSize > 0) FS.ftruncate(stream.fd, entry.uncompressedSize);
+      let offset = 0;
       let closed = false;
       const close = () => {
         if (!closed) {
@@ -147,7 +159,8 @@ export async function extractIpaToMemfs(
       };
       const writable = new WritableStream<Uint8Array>({
         write(chunk) {
-          FS.write(stream, chunk, 0, chunk.byteLength);
+          FS.write(stream, chunk, 0, chunk.byteLength, offset);
+          offset += chunk.byteLength;
         },
         close,
         abort: close

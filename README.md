@@ -26,6 +26,8 @@ Made by [AntonP29](https://github.com/AntonP29). Project status: June 17, 2026.
 - Dedicated browser worker so signing does not block the interface.
 - Streaming ZIP extraction with bounded parallel decompression and native browser
   decompression streams when available, followed by zsign-native IPA archiving.
+- Mobile-aware sequential extraction and exact-size MEMFS allocation to reduce transient
+  memory spikes on WebKit and Android browsers.
 - Conventional non-ZIP64 IPA output with explicit directory records for iOS installer
   compatibility.
 - Live, internally scrolling zsign console output.
@@ -273,6 +275,8 @@ normal page load.
   automatically.
 - iOS browsers use Apple's WebKit engine even when branded as Chrome, so large IPA
   signing on iPhone/iPad remains constrained by WebKit memory limits.
+- Mobile extraction runs one entry at a time and preallocates each destination file, but
+  very large expanded apps can still exceed a device's per-tab memory allowance.
 - Large IPA performance depends on device CPU, memory, storage, and browser limits.
 - Extraction progress is byte-based; native zsign archive activity is indeterminate.
 - Litterbox upload progress is indeterminate for CORS compatibility.

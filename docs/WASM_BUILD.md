@@ -31,4 +31,8 @@ passes the extracted folder to upstream zsign with the original output and compr
 arguments intact. zsign's minizip implementation creates the final IPA, preserving its
 file ordering, headers, directory records, attributes, and CLI behavior.
 
+Mobile user agents extract one ZIP entry at a time. MEMFS files are truncated to their
+known final size before decompression writes begin, avoiding repeated typed-array growth
+and reducing transient peak memory.
+
 The web app keeps signing local to the browser worker. `-i/--install` and live OCSP socket checks are intentionally unsupported in browser-only mode.
