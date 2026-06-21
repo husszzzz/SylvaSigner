@@ -1,7 +1,6 @@
 'use client'
 
 import * as React from 'react'
-import * as QRCode from 'qrcode'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -273,10 +272,12 @@ function StatusTag({ children, tone }: { children: React.ReactNode; tone: 'local
 
 function PreviousIpasDialog({
   entries,
+  directInstall = false,
   onClose,
   onClear,
 }: {
   entries: IpaHistoryEntry[]
+  directInstall?: boolean
   onClose: () => void
   onClear: () => void
 }) {
@@ -298,27 +299,33 @@ function PreviousIpasDialog({
   }, [])
 
   React.useEffect(() => {
+    if (directInstall) {
+      setQrCodes({})
+      return
+    }
     let cancelled = false
     const activeEntries = entries.filter(
       (entry) => entry.installUrl && !isExpired(entry),
     )
-    void Promise.all(
-      activeEntries.map(async (entry) => [
-        entry.id,
-        await QRCode.toDataURL(entry.installUrl!, {
-          errorCorrectionLevel: 'M',
-          margin: 1,
-          scale: 5,
-          color: { dark: '#111827', light: '#ffffff' },
-        }),
-      ] as const),
-    ).then((values) => {
+    void (async () => {
+      const QRCode = await import('qrcode')
+      const values = await Promise.all(
+        activeEntries.map(async (entry) => [
+          entry.id,
+          await QRCode.toDataURL(entry.installUrl!, {
+            errorCorrectionLevel: 'M',
+            margin: 1,
+            scale: 5,
+            color: { dark: '#111827', light: '#ffffff' },
+          }),
+        ] as const),
+      )
       if (!cancelled) setQrCodes(Object.fromEntries(values))
-    })
+    })()
     return () => {
       cancelled = true
     }
-  }, [entries])
+  }, [directInstall, entries])
 
   const copyValue = async (id: string, value: string) => {
     await navigator.clipboard.writeText(value)
@@ -412,7 +419,7 @@ function PreviousIpasDialog({
 
                     {hasLinks && (
                       <div className="mt-3 flex flex-wrap items-end gap-3">
-                        {!expired && qrCodes[entry.id] && (
+                        {!directInstall && !expired && qrCodes[entry.id] && (
                           <div className="rounded-xl border border-border bg-white p-1.5">
                             <img
                               src={qrCodes[entry.id]}
@@ -438,22 +445,34 @@ function PreviousIpasDialog({
                               : 'Copy Download URL'}
                           </Button>
                         </AnimateIcon>
-                        <AnimateIcon animateOnHover asChild>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              copyValue(`${entry.id}-install`, entry.installUrl ?? '')
-                            }
-                            className="gap-2"
-                          >
-                            <Copy size={14} />
-                            {copiedId === `${entry.id}-install`
-                              ? 'Copied Link'
-                              : 'Copy iPhone Install Link'}
-                          </Button>
-                        </AnimateIcon>
+                        {directInstall && !expired ? (
+                          <AnimateIcon animateOnHover asChild>
+                            <a
+                              href={entry.installUrl}
+                              className="inline-flex h-8 items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                            >
+                              <Send size={14} />
+                              Install on iPhone
+                            </a>
+                          </AnimateIcon>
+                        ) : !directInstall ? (
+                          <AnimateIcon animateOnHover asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                copyValue(`${entry.id}-install`, entry.installUrl ?? '')
+                              }
+                              className="gap-2"
+                            >
+                              <Copy size={14} />
+                              {copiedId === `${entry.id}-install`
+                                ? 'Copied Link'
+                                : 'Copy iPhone Install Link'}
+                            </Button>
+                          </AnimateIcon>
+                        ) : null}
                         </div>
                       </div>
                     )}
@@ -524,7 +543,7 @@ function WelcomeDialog({ onClose }: { onClose: () => void }) {
               Large files can take time because extraction, signing, and archiving happen
               on this device and may require several times the IPA size in available
               memory. Direct iPhone installation requires an
-              HTTPS-hosted IPA, so the built-in QR flow uploads only the signed IPA to a
+              HTTPS-hosted IPA, so the built-in installation flow uploads only the signed IPA to a
               temporary provider after your explicit agreement.
             </p>
           </div>
@@ -558,7 +577,7 @@ function LegalFooter() {
         <p className="italic leading-5">
           Sylva Signer runs zsign as WebAssembly inside a dedicated browser worker. Your IPA,
           certificate, provisioning profile, password, and signed output remain on this device
-          during signing; QR install uploads only the signed IPA after confirmation.
+          during signing; temporary installation uploads only the signed IPA after confirmation.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 border-y border-border/70 py-3 text-foreground/70">
@@ -628,115 +647,11 @@ function isMobileBrowser() {
   )
 }
 
-function MobileUnavailablePage({ onContinue }: { onContinue: () => void }) {
-  const steps = [
-    {
-      icon: Upload,
-      title: 'Select signing files',
-      description:
-        'Choose the IPA, P12 or PFX certificate, provisioning profile, and certificate password from this device.',
-    },
-    {
-      icon: Blocks,
-      title: 'Sign locally in the browser',
-      description:
-        'A dedicated browser worker runs zsign as WebAssembly. Your signing credentials and source IPA remain on this device.',
-    },
-    {
-      icon: Download,
-      title: 'Save the signed IPA',
-      description:
-        'When signing finishes, download the completed IPA directly from the browser.',
-    },
-    {
-      icon: Send,
-      title: 'Optional iPhone installation',
-      description:
-        'With your approval, upload only the signed IPA to a temporary HTTPS provider, then open the generated installation link.',
-    },
-  ]
-
+function isAppleMobileBrowser() {
+  if (typeof navigator === 'undefined') return false
   return (
-    <main className="mx-auto flex min-h-svh w-full max-w-3xl flex-col px-5 py-8">
-      <header className="flex items-center justify-between gap-4">
-        <a href="#" className="flex items-center gap-3.5">
-          <div className="relative size-12 shrink-0 overflow-hidden rounded-2xl shadow-sm">
-            <img
-              src="/icon-light.png"
-              alt="Sylva Signer logo"
-              className="size-full scale-[1.18] object-cover dark:hidden"
-            />
-            <img
-              src="/icon-dark.png"
-              alt=""
-              aria-hidden
-              className="hidden size-full scale-[1.18] object-cover dark:block"
-            />
-          </div>
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">Sylva Signer</h1>
-            <p className="text-sm text-muted-foreground">Local IPA signing</p>
-          </div>
-        </a>
-        <ThemeToggle />
-      </header>
-
-      <section className="mt-8 overflow-hidden rounded-2xl border border-border bg-card">
-        <div className="border-b border-border px-5 py-6 text-center">
-          <AnimateIcon animate loop loopDelay={500}>
-            <LockKeyhole
-              size={36}
-              className="mx-auto text-muted-foreground transition-colors hover:text-emerald-500"
-            />
-          </AnimateIcon>
-          <h2 className="mt-4 text-2xl font-semibold tracking-tight">
-            Desktop recommended
-          </h2>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            Mobile signing is experimental because browser memory limits can terminate
-            large jobs without warning. A lower-memory compatibility pipeline is available,
-            but desktop Chromium remains the most reliable option.
-          </p>
-        </div>
-
-        <div className="px-5 py-5">
-          <p className="mb-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            Desktop workflow
-          </p>
-          <ol className="divide-y divide-border">
-            {steps.map(({ icon: StepIcon, title, description }, index) => (
-              <li key={title} className="flex gap-3 py-4">
-                <AnimateIcon animateOnHover>
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                    <StepIcon size={17} />
-                  </div>
-                </AnimateIcon>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium">
-                    {index + 1}. {title}
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-          <div className="mt-4 border-t border-border pt-5">
-            <p className="mb-3 text-xs leading-5 text-muted-foreground">
-              Continue only if you can keep this tab open throughout signing. Smaller IPAs
-              are more likely to complete successfully on mobile devices.
-            </p>
-            <AnimateIcon animateOnHover asChild>
-              <Button type="button" onClick={onContinue} className="w-full gap-2">
-                <TriangleAlert size={16} />
-                Continue on this device
-              </Button>
-            </AnimateIcon>
-          </div>
-        </div>
-      </section>
-
-      <LegalFooter />
-    </main>
+    /iPad|iPhone|iPod/i.test(navigator.userAgent) ||
+    (/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1)
   )
 }
 
@@ -801,7 +716,7 @@ function InfoPage({ route }: { route: Exclude<Route, 'app'> }) {
                 Sylva Signer is designed to sign IPA files locally in your browser. The app
                 does not require a signing server and does not intentionally upload your IPA,
                 P12/PFX certificate, provisioning profile, password, or dylibs. If you choose
-                QR install after signing, only the signed IPA is uploaded temporarily so iOS can
+                temporary installation after signing, only the signed IPA is uploaded so iOS can
                 fetch it over HTTPS.
               </p>
               <p>
@@ -992,6 +907,7 @@ function AppDetailsTile({
 }
 
 function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
+  const directInstallOnDevice = mobileMode && isAppleMobileBrowser()
   const [ipa, setIpa] = React.useState<File[]>([])
   const [p12, setP12] = React.useState<File[]>([])
   const [profiles, setProfiles] = React.useState<File[]>([])
@@ -1608,8 +1524,8 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
           <p className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-xs leading-5 text-muted-foreground">
             Large IPAs can be slow because unzipping, signing, and re-archiving happen
             locally. Keep this tab open and ensure the device has several times the IPA
-            size available as free memory. QR install uploads the signed IPA only after
-            you confirm.
+            size available as free memory. Installation hosting uploads the signed IPA
+            only after you confirm.
           </p>
         </div>
 
@@ -1651,7 +1567,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
                   className="gap-2 border-emerald-500/30 bg-background/70 text-foreground hover:bg-background"
                 >
                   <Send size={16} />
-                  Install QR
+                  {directInstallOnDevice ? 'Install on iPhone' : 'Install QR'}
                 </Button>
               </AnimateIcon>
             </div>
@@ -1680,6 +1596,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
         <InstallQrDialog
           output={firstOutput}
           initialMetadata={installMetadata}
+          directInstall={directInstallOnDevice}
           onClose={() => setInstallDialogOpen(false)}
           onLog={(message) => addLog(logLevelFor(message), message)}
           onUploaded={(result, expiry) => {
@@ -1692,6 +1609,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
       {historyDialogOpen && (
         <PreviousIpasDialog
           entries={historyEntries}
+          directInstall={directInstallOnDevice}
           onClose={() => setHistoryDialogOpen(false)}
           onClear={() => {
             clearIpaHistory()
@@ -1710,14 +1628,9 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
 export function SylvaSigner() {
   const route = useRoute()
   const mobile = isMobileBrowser()
-  const [mobileBypass, setMobileBypass] = React.useState(false)
 
   if (route === 'privacy' || route === 'legal') {
     return <InfoPage route={route} />
-  }
-
-  if (mobile && !mobileBypass) {
-    return <MobileUnavailablePage onContinue={() => setMobileBypass(true)} />
   }
 
   return <SignerApp mobileMode={mobile} />

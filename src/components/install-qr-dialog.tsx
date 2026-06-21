@@ -1,9 +1,9 @@
 'use client'
 
 import * as React from 'react'
-import * as QRCode from 'qrcode'
 
 import { AnimateIcon } from '@/components/animate-ui/icons/icon'
+import { CircleCheckBig } from '@/components/animate-ui/icons/circle-check-big'
 import { Download } from '@/components/animate-ui/icons/download'
 import { LoaderCircle } from '@/components/animate-ui/icons/loader-circle'
 import { Send } from '@/components/animate-ui/icons/send'
@@ -24,6 +24,7 @@ type InstallQrDialogProps = {
   output: OutputFile
   initialMetadata: Partial<InstallMetadata>
   onClose: () => void
+  directInstall?: boolean
   onLog?: (message: string) => void
   onUploaded?: (result: TemporaryInstallResult, expiry: LitterboxExpiry) => void
 }
@@ -38,6 +39,7 @@ export function InstallQrDialog({
   output,
   initialMetadata,
   onClose,
+  directInstall = false,
   onLog,
   onUploaded,
 }: InstallQrDialogProps) {
@@ -69,7 +71,7 @@ export function InstallQrDialog({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [onClose])
 
-  const handleCreateQr = async () => {
+  const handlePrepareInstall = async () => {
     setState('uploading')
     setError('')
     setCopied(false)
@@ -87,27 +89,35 @@ export function InstallQrDialog({
         },
         ipaUrl,
       )
-      const nextQr = await QRCode.toDataURL(nextResult.installUrl, {
-        errorCorrectionLevel: 'M',
-        margin: 1,
-        scale: 8,
-        color: {
-          dark: '#111827',
-          light: '#ffffff',
-        },
-      })
+      let nextQr = ''
+      if (!directInstall) {
+        const QRCode = await import('qrcode')
+        nextQr = await QRCode.toDataURL(nextResult.installUrl, {
+            errorCorrectionLevel: 'M',
+            margin: 1,
+            scale: 8,
+            color: {
+              dark: '#111827',
+              light: '#ffffff',
+            },
+          })
+      }
 
       setResult(nextResult)
       setQrDataUrl(nextQr)
       setState('ready')
       onUploaded?.(nextResult, expiry)
-      onLog?.('Install QR generated from temporary HTTPS IPA URL')
+      onLog?.(
+        directInstall
+          ? 'Direct iPhone installation link is ready'
+          : 'Install QR generated from temporary HTTPS IPA URL',
+      )
     } catch (nextError) {
       const message =
         nextError instanceof Error ? nextError.message : String(nextError)
       setError(message)
       setState('error')
-      onLog?.(`Install QR failed: ${message}`)
+      onLog?.(`Installation preparation failed: ${message}`)
     }
   }
 
@@ -126,17 +136,19 @@ export function InstallQrDialog({
       className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 py-6 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="install-qr-title"
+      aria-labelledby="install-title"
     >
-      <div className="flex max-h-[min(92svh,760px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+      <div
+        className={`flex max-h-[min(92svh,760px)] w-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl ${directInstall ? 'max-w-lg' : 'max-w-2xl'}`}
+      >
         <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
           <div className="flex items-center gap-3">
             <AnimateIcon animate loop loopDelay={350}>
               <TriangleAlert size={28} className="text-yellow-500" />
             </AnimateIcon>
             <div>
-              <h2 id="install-qr-title" className="text-lg font-semibold">
-                Install with QR
+              <h2 id="install-title" className="text-lg font-semibold">
+                {directInstall ? 'Install on iPhone' : 'Install with QR'}
               </h2>
               <p className="text-sm text-muted-foreground">
                 Temporarily host the signed IPA so iOS can fetch it over HTTPS.
@@ -148,8 +160,10 @@ export function InstallQrDialog({
           </Button>
         </div>
 
-        <div className="grid min-h-0 gap-5 overflow-y-auto p-5 md:grid-cols-[minmax(0,1fr)_240px]">
-          <div className="min-w-0 space-y-4">
+        <div
+          className={`grid min-h-0 gap-5 overflow-y-auto p-5 ${directInstall ? '' : 'md:grid-cols-[minmax(0,1fr)_240px]'}`}
+        >
+          <div className={`min-w-0 space-y-4 ${directInstall && result ? 'hidden' : ''}`}>
             <button
               type="button"
               onClick={() => setShowLimitations((value) => !value)}
@@ -165,13 +179,14 @@ export function InstallQrDialog({
 
             <p className="text-xs leading-5 text-muted-foreground">
               Large signed IPAs may take a while to upload. Keep this tab open until the
-              QR code appears. Litterbox accepts files up to 1 GB.
+              installation link is ready. Litterbox accepts files up to 1 GB.
             </p>
 
             {showLimitations && (
               <div className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm leading-6 text-muted-foreground">
                 <p>
-                  QR install is not fully local. Your certificate, provisioning
+                  {directInstall ? 'Direct installation' : 'QR installation'} is not fully
+                  local. Your certificate, provisioning
                   profile, and password stay in this browser, but the signed IPA
                   is uploaded to Litterbox and is public until it expires.
                 </p>
@@ -237,7 +252,7 @@ export function InstallQrDialog({
               >
                 <Button
                   type="button"
-                  onClick={handleCreateQr}
+                  onClick={handlePrepareInstall}
                   disabled={!canUpload}
                   className="mt-auto h-9 gap-2"
                 >
@@ -246,7 +261,11 @@ export function InstallQrDialog({
                   ) : (
                     <Send size={16} />
                   )}
-                  {state === 'uploading' ? 'Uploading...' : 'Create QR'}
+                  {state === 'uploading'
+                    ? 'Uploading...'
+                    : directInstall
+                      ? 'Prepare Installation'
+                      : 'Create QR'}
                 </Button>
               </AnimateIcon>
             </div>
@@ -269,7 +288,7 @@ export function InstallQrDialog({
               </p>
             )}
 
-            {result && (
+            {result && !directInstall && (
               <div className="min-w-0 space-y-2 rounded-xl border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
                 <div className="min-w-0">
                   <p className="font-medium text-foreground/80">IPA URL</p>
@@ -287,7 +306,33 @@ export function InstallQrDialog({
             )}
           </div>
 
-          <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-background p-4">
+          {directInstall && result && (
+            <div className="flex flex-col items-center gap-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-5 text-center">
+              <CircleCheckBig size={30} animate className="text-emerald-500" />
+              <div>
+                <p className="font-medium text-foreground">Installation is ready</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  Tap below to hand the temporary HTTPS manifest to iOS.
+                </p>
+              </div>
+              <AnimateIcon animateOnHover asChild>
+                <a
+                  href={result.installUrl}
+                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-transparent bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  <Send size={17} />
+                  Install on iPhone
+                </a>
+              </AnimateIcon>
+              <p className="text-xs leading-5 text-muted-foreground">
+                iOS may ask you to confirm installation. Keep Sylva open until that prompt
+                appears.
+              </p>
+            </div>
+          )}
+
+          {!directInstall && (
+            <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-background p-4">
             {qrDataUrl ? (
               <img
                 src={qrDataUrl}
@@ -328,7 +373,8 @@ export function InstallQrDialog({
                 </a>
               </AnimateIcon>
             </div>
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

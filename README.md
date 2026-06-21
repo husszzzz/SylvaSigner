@@ -91,7 +91,7 @@ History is stored in browser `localStorage` and keeps:
 - Signed output name and signing time
 - Detected bundle metadata when available
 - Compact app artwork thumbnail when available
-- Temporary IPA/manifest/install URLs when QR installation was used
+- Temporary IPA/manifest/install URLs when installation hosting was used
 - Selected temporary-host duration and calculated expiration time
 
 Signed IPA bytes are **not** retained in history. A `Fully Local` entry therefore has no
@@ -99,14 +99,15 @@ copy-link actions and cannot be downloaded again after the in-memory output is g
 `Active` and `Expired` are calculated locally from the selected duration; Sylva does not
 poll Litterbox to verify remote file availability.
 
-### Optional QR installation
+### Optional iPhone installation
 
-QR installation is not fully local. After confirmation:
+Temporary installation is not fully local. After confirmation:
 
 1. The already-signed IPA is uploaded directly from the browser to Litterbox over HTTPS.
 2. The original IPA, P12, provisioning profile, password, and dylibs are not uploaded.
 3. Sylva sends app metadata and the temporary IPA URL to Palera's manifest generator.
-4. Sylva renders an `itms-services://` QR code and direct iPhone install link.
+4. Desktop browsers receive an `itms-services://` QR code and install link. On iPhone or
+   iPad, Sylva instead presents a direct **Install on iPhone** button after upload.
 
 The temporary IPA URL is public to anyone who possesses it until it expires. Litterbox
 accepts files up to **1 GB**; Sylva rejects larger upload attempts before sending them.
@@ -122,8 +123,8 @@ accepts files up to **1 GB**; Sylva rejects larger upload attempts before sendin
 7. Optionally enable local certificate caching.
 8. Click `Sign IPA` and keep the tab open while the worker runs.
 9. Download the signed IPA locally.
-10. Optionally choose `Install QR`, review the limitations, and approve temporary
-    hosting.
+10. Optionally choose `Install QR` on desktop or `Install on iPhone` on iOS, review the
+    limitations, and approve temporary hosting.
 
 Large IPAs can still take significant time because extraction, signing, and re-archiving
 use the device's CPU and storage. Sylva streams ZIP entries through browser decompression
@@ -152,11 +153,12 @@ The `Previous IPAs` button beside the theme control opens local signing history.
 - `Copy Download URL`: copies the temporary Litterbox IPA URL.
 - `Copy iPhone Install Link`: copies the generated `itms-services://` link.
 - Active entries display their install QR until the calculated link expiration time.
+- On iPhone and iPad, active entries display a direct installation button instead of a QR.
 
 Clearing history removes these local records and URLs. It does not control files already
 uploaded to Litterbox.
 
-## QR Install Limitations
+## Temporary Install Limitations
 
 - Maximum temporary upload size is 1 GB.
 - Temporary durations are controlled by Litterbox.
@@ -217,7 +219,7 @@ Required content types:
 ```
 
 No application backend is required for signing. Network access is used only for loading
-the hosted static app and for the explicitly approved QR installation flow.
+the hosted static app and for the explicitly approved temporary installation flow.
 
 ## TypeScript Interfaces
 
@@ -228,7 +230,7 @@ The worker API is available in [`src/zsign-api.ts`](src/zsign-api.ts):
 - `signIpa(options, runOptions)` provides the higher-level IPA signing interface.
 - `saveOutput(output)` downloads a returned output file through the browser.
 - `runOptions.storageMode: "mobile-native"` selects the low-copy WORKERFS/native-minizip
-  pipeline in a minimal classic worker used after the mobile compatibility bypass.
+  pipeline in a minimal classic worker used on mobile browsers.
 
 `SignIpaOptions` retains the broader zsign option surface even though the main interface
 shows only the common workflow.
@@ -286,16 +288,15 @@ npm run test:e2e
 
 The Playwright suite verifies the Sylva work surface, welcome notice, standard and CgBI
 app metadata/artwork extraction, bundle-ID autofill, local P12/profile details, output
-naming, footer pages, active QR history, the desktop archive path, mobile bypass, and a
-complete mobile-native sign/archive round trip. Normal page load is also checked for
+naming, footer pages, active install history, the desktop archive path, direct mobile
+access, and a complete mobile-native sign/archive round trip. Normal page load is checked for
 unexpected external requests.
 
 ## Browser and Platform Limits
 
 - Current desktop Chromium is the primary and most reliable browser target.
-- iOS and Android visitors receive a warning before they can opt into mobile compatibility
-  mode. Mobile completion depends on the IPA's expanded size and the browser's per-tab
-  memory allowance.
+- iOS and Android visitors open the signer directly in mobile compatibility mode. Mobile
+  completion depends on the IPA's expanded size and the browser's per-tab memory allowance.
 - Mobile mode is deliberately slower: it avoids zip.js expansion, reads the IPA through
   WORKERFS in a minimal classic worker, uses upstream zsign/minizip, selects compression
   level 1, and transfers the completed MEMFS file buffer directly before terminating the

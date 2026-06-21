@@ -240,23 +240,46 @@ test.describe("mobile availability", () => {
     userAgent: iphone.userAgent
   });
 
-  test("offers an explicit mobile compatibility bypass", async ({ page }) => {
+  test("opens the mobile compatibility signer directly", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page.getByRole("heading", { name: "Desktop recommended" })).toBeVisible();
-    await expect(page.getByText("Mobile signing is experimental")).toBeVisible();
-    await expect(page.getByText("Select signing files")).toBeVisible();
-    await expect(page.getByText("Sign locally in the browser")).toBeVisible();
-    await expect(page.getByText("Optional iPhone installation")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Sign IPA" })).toHaveCount(0);
-    await expect(page.getByRole("link", { name: "Privacy Policy" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Legal" })).toBeVisible();
-
-    await page.getByRole("button", { name: "Continue on this device" }).click();
+    await expect(page.getByRole("heading", { name: "Desktop recommended" })).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Hey there 👋" })).toBeVisible();
     await page.getByRole("button", { name: "Continue" }).click();
     await expect(page.getByText("Mobile compatibility mode", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Sign IPA" })).toBeDisabled();
+    await expect(page.getByRole("link", { name: "Privacy Policy" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Legal" })).toBeVisible();
+  });
+
+  test("shows direct installation actions instead of QR on iPhone", async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem("sylva-signer-ipa-history", JSON.stringify([{
+        id: "mobile-install-entry",
+        name: "SylvaMobile_signed.ipa",
+        signedAt: new Date().toISOString(),
+        metadata: { appName: "Sylva Mobile", bundleId: "dev.sylva.mobile", version: "1.0" },
+        provider: "litterbox",
+        uploadExpiry: "1h",
+        uploadedAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        ipaUrl: "https://litter.catbox.moe/mobile.ipa",
+        manifestUrl: "https://api.palera.in/mobile",
+        installUrl: "itms-services://?action=download-manifest&url=https%3A%2F%2Fexample.test"
+      }]));
+    });
+    await page.goto("/");
+    await page.getByRole("button", { name: "Continue" }).click();
+    await page.getByRole("button", { name: "Previous IPAs" }).click();
+
+    const installLink = page.getByRole("link", { name: "Install on iPhone" });
+    await expect(installLink).toBeVisible();
+    await expect(installLink).toHaveAttribute(
+      "href",
+      "itms-services://?action=download-manifest&url=https%3A%2F%2Fexample.test"
+    );
+    await expect(page.getByAltText("Install Sylva Mobile QR code")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Copy iPhone Install Link" })).toHaveCount(0);
   });
 });
 
