@@ -19,6 +19,50 @@ const litterboxHost = 'https://litter.catbox.moe/'
 const litterboxMaxFileSize = 1024 * 1024 * 1024
 const paleraManifestEndpoint = 'https://api.palera.in/genPlist'
 
+function isAppleMobileBrowser() {
+  if (typeof navigator === 'undefined') return false
+  return (
+    /iPad|iPhone|iPod/i.test(navigator.userAgent) ||
+    (/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1)
+  )
+}
+
+function uploadFormWithXhr(form: FormData) {
+  return new Promise<{ ok: boolean; status: number; text: string }>((resolve, reject) => {
+    const request = new XMLHttpRequest()
+    request.open('POST', litterboxEndpoint)
+    request.onload = () => {
+      resolve({
+        ok: request.status >= 200 && request.status < 300,
+        status: request.status,
+        text: request.responseText.trim(),
+      })
+    }
+    request.onerror = () => {
+      reject(
+        new Error(
+          'Mobile Safari could not connect to Litterbox. Check content blockers, Private Relay, or the current network and retry.',
+        ),
+      )
+    }
+    request.onabort = () => reject(new Error('The Litterbox upload was cancelled.'))
+    // Do not attach xhr.upload listeners: they trigger a preflight that Litterbox rejects.
+    request.send(form)
+  })
+}
+
+async function uploadFormWithFetch(form: FormData) {
+  const response = await fetch(litterboxEndpoint, {
+    method: 'POST',
+    body: form,
+  })
+  return {
+    ok: response.ok,
+    status: response.status,
+    text: (await response.text()).trim(),
+  }
+}
+
 export async function uploadSignedIpaToLitterbox(
   output: OutputFile,
   expiry: LitterboxExpiry = '1h',
@@ -28,9 +72,9 @@ export async function uploadSignedIpaToLitterbox(
     throw new Error('Litterbox accepts files up to 1 GB. Choose a smaller signed IPA.')
   }
 
-  const blob = new Blob([output.data], {
-    type: output.type || 'application/octet-stream',
-  })
+  const blob = output.data instanceof Blob
+    ? output.data
+    : new Blob([output.data], { type: output.type || 'application/octet-stream' })
   const fileName = output.name.toLowerCase().endsWith('.ipa')
     ? output.name
     : `${output.name}.ipa`
@@ -38,25 +82,21 @@ export async function uploadSignedIpaToLitterbox(
   const form = new FormData()
   form.append('reqtype', 'fileupload')
   form.append('time', expiry)
-  form.append('fileToUpload', new File([blob], fileName, { type: blob.type }))
+  form.append('fileToUpload', blob, fileName)
 
-  // Upload progress listeners force a CORS preflight that Litterbox does not
-  // reliably accept. A plain multipart fetch remains a CORS-safelisted request.
-  const response = await fetch(litterboxEndpoint, {
-    method: 'POST',
-    body: form,
-  })
-  const text = (await response.text()).trim()
+  const response = isAppleMobileBrowser()
+    ? await uploadFormWithXhr(form)
+    : await uploadFormWithFetch(form)
 
   if (!response.ok) {
     throw new Error(`Litterbox upload failed with HTTP ${response.status}.`)
   }
 
-  if (!text.startsWith(litterboxHost)) {
-    throw new Error(text || 'Litterbox did not return a temporary file URL.')
+  if (!response.text.startsWith(litterboxHost)) {
+    throw new Error(response.text || 'Litterbox did not return a temporary file URL.')
   }
 
-  return text
+  return response.text
 }
 
 export function buildPaleraInstallUrls(

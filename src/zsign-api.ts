@@ -45,6 +45,14 @@ function getWorker(mode: "standard" | "mobile-native") {
     }
     pending.delete(message.id);
     if (message.ok && message.result) {
+      if (mode === "mobile-native") {
+        message.result.outputs = message.result.outputs.map((output) => ({
+          ...output,
+          data: output.data instanceof Blob
+            ? output.data
+            : new Blob([output.data], { type: output.type || "application/octet-stream" })
+        }));
+      }
       run.resolve(message.result);
     } else {
       run.reject(new Error(message.error ?? "zsign worker failed"));
@@ -178,7 +186,9 @@ export function signIpa(
 }
 
 export function saveOutput(file: OutputFile) {
-  const blob = new Blob([file.data], { type: file.type || "application/octet-stream" });
+  const blob = file.data instanceof Blob
+    ? file.data
+    : new Blob([file.data], { type: file.type || "application/octet-stream" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;

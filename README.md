@@ -171,6 +171,8 @@ uploaded to Litterbox.
   before constructing the large upload body so mobile browsers can paint this state.
   Browser upload progress listeners force a CORS preflight that Litterbox does not reliably
   accept; plain multipart upload works without that preflight.
+- Apple mobile browsers use a plain XHR multipart transport without upload listeners because
+  Litterbox currently returns HTTP 405 to preflight requests. Desktop browsers use `fetch`.
 - Blob URLs and localhost URLs are not suitable for installation on a separate iPhone.
 
 ## Quick Start
@@ -272,8 +274,9 @@ The desktop build uses `WORKERFS` for certificate inputs, browser ZIP extraction
 MEMFS, and `IDBFS` for the persistent zsign cache. The mobile-native build keeps the IPA
 as a WORKERFS-backed browser Blob and delegates extraction and archive creation to upstream
 zsign in a classic worker that does not import the app's zip.js worker bundle. It starts
-with a 16.625 MiB WASM heap, caps growth at 512 MiB, and transfers the final MEMFS output
-buffer without an additional read copy. The mobile UI paints its initial status before
+with a 16.625 MiB WASM heap, caps growth at 512 MiB, transfers the final MEMFS output
+buffer without an additional read copy, and wraps it once as a reusable browser Blob. The
+mobile UI paints its initial status before
 starting the worker and pauses decorative animation while signing. The experimental OPFS
 build uses WasmFS and Asyncify,
 but automatic selection is disabled until full signing is reliable on that backend.

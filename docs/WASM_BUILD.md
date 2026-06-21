@@ -45,7 +45,8 @@ Mobile compatibility mode bypasses browser ZIP extraction and the general module
 `public/mobile-zsign-worker.js` is a minimal classic worker which imports only the
 Emscripten runtime. The IPA remains a Blob mounted through WORKERFS while zsign's minizip
 code streams it into MEMFS. Output is returned by transferring the MEMFS file's owned
-typed-array buffer, avoiding `FS.readFile` and its full output copy. The worker is
-terminated as soon as the result is delivered.
+typed-array buffer, avoiding `FS.readFile` and its full output copy. Mobile callers wrap
+that buffer once as a browser-managed Blob reused by download and temporary upload. The
+worker is terminated as soon as the result is delivered.
 
 The web app keeps signing local to the browser worker. `-i/--install` and live OCSP socket checks are intentionally unsupported in browser-only mode.

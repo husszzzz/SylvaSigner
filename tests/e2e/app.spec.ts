@@ -2,6 +2,7 @@ import { devices, expect, test } from "@playwright/test";
 import { readFileSync, readdirSync } from "node:fs";
 import { deflateRawSync } from "node:zlib";
 import forge from "node-forge";
+import { uploadSignedIpaToLitterbox } from "../../src/install-api";
 import {
   TextReader,
   Uint8ArrayReader,
@@ -93,6 +94,64 @@ function syntheticSigningFiles() {
 </dict></plist>`);
   return { p12Bytes, profile };
 }
+
+test("uses a preflight-free multipart XHR for Apple mobile uploads", async () => {
+  const runtime = globalThis as typeof globalThis & {
+    navigator: Navigator;
+    XMLHttpRequest: typeof XMLHttpRequest;
+  };
+  const navigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+  const xhrDescriptor = Object.getOwnPropertyDescriptor(globalThis, "XMLHttpRequest");
+  let opened = "";
+  let sentForm: FormData | undefined;
+
+  class FakeXmlHttpRequest {
+    status = 200;
+    responseText = "https://litter.catbox.moe/mobile-test.ipa\n";
+    onload: (() => void) | null = null;
+    onerror: (() => void) | null = null;
+    onabort: (() => void) | null = null;
+
+    open(method: string, url: string) {
+      opened = `${method} ${url}`;
+    }
+
+    send(form: FormData) {
+      sentForm = form;
+      queueMicrotask(() => this.onload?.());
+    }
+  }
+
+  Object.defineProperty(globalThis, "navigator", {
+    configurable: true,
+    value: {
+      userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X)",
+      maxTouchPoints: 5
+    }
+  });
+  Object.defineProperty(globalThis, "XMLHttpRequest", {
+    configurable: true,
+    value: FakeXmlHttpRequest
+  });
+
+  try {
+    const result = await uploadSignedIpaToLitterbox({
+      path: "/output/test.ipa",
+      name: "test.ipa",
+      type: "application/zip",
+      data: new Blob(["test"])
+    });
+    expect(opened).toBe("POST https://litterbox.catbox.moe/resources/internals/api.php");
+    expect(result).toBe("https://litter.catbox.moe/mobile-test.ipa");
+    expect(sentForm).toBeInstanceOf(FormData);
+    expect((sentForm?.get("fileToUpload") as File).name).toBe("test.ipa");
+  } finally {
+    if (navigatorDescriptor) Object.defineProperty(globalThis, "navigator", navigatorDescriptor);
+    else delete (runtime as { navigator?: Navigator }).navigator;
+    if (xhrDescriptor) Object.defineProperty(globalThis, "XMLHttpRequest", xhrDescriptor);
+    else delete (runtime as { XMLHttpRequest?: typeof XMLHttpRequest }).XMLHttpRequest;
+  }
+});
 
 test("loads the exact Sylva signing work surface without external network requests", async ({ page }) => {
   const external: string[] = [];
