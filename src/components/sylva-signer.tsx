@@ -589,6 +589,7 @@ function LegalFooter() {
             >
               zsign
             </a>
+            <span>(WASM port)</span>
           </span>
           <span className="inline-flex items-center gap-1 whitespace-nowrap">
             <span className="mr-2 font-semibold text-foreground/60" aria-hidden="true">
