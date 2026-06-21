@@ -121,7 +121,8 @@ accepts files up to **1 GB**; Sylva rejects larger upload attempts before sendin
 5. Enter the certificate password.
 6. Optionally select dylibs to inject or edit the detected bundle ID.
 7. Optionally enable local certificate caching.
-8. Click `Sign IPA` and keep the tab open while the worker runs.
+8. Click `Sign IPA` and keep the tab open while the worker runs. Mobile browsers scroll
+   directly to the live console before the signing worker starts.
 9. Download the signed IPA locally.
 10. Optionally choose `Install QR` on desktop or `Install on iPhone` on iOS, review the
     limitations, and approve temporary hosting.
@@ -166,9 +167,10 @@ uploaded to Litterbox.
 - Installation depends on Litterbox, Palera, Apple OTA behavior, device trust, and the
   signing certificate/provisioning profile.
 - Some networks or regions may block Catbox/Litterbox.
-- The upload bar is intentionally indeterminate. Browser upload progress listeners force
-  a CORS preflight that Litterbox does not reliably accept; plain multipart upload works
-  without that preflight.
+- The upload bar is intentionally indeterminate and displays elapsed time. Sylva yields
+  before constructing the large upload body so mobile browsers can paint this state.
+  Browser upload progress listeners force a CORS preflight that Litterbox does not reliably
+  accept; plain multipart upload works without that preflight.
 - Blob URLs and localhost URLs are not suitable for installation on a separate iPhone.
 
 ## Quick Start

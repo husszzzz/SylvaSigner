@@ -35,6 +35,12 @@ function metadataValue(value: string | undefined, fallback: string) {
   return value?.trim() || fallback
 }
 
+function waitForPaint() {
+  return new Promise<void>((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+  })
+}
+
 export function InstallQrDialog({
   output,
   initialMetadata,
@@ -59,9 +65,11 @@ export function InstallQrDialog({
   const [result, setResult] = React.useState<TemporaryInstallResult | null>(null)
   const [qrDataUrl, setQrDataUrl] = React.useState('')
   const [copied, setCopied] = React.useState(false)
+  const [uploadElapsedSeconds, setUploadElapsedSeconds] = React.useState(0)
 
-  const canUpload =
-    state !== 'uploading' && appName.trim() && bundleId.trim() && version.trim()
+  const canUpload = Boolean(
+    state !== 'uploading' && appName.trim() && bundleId.trim() && version.trim(),
+  )
 
   React.useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -71,6 +79,18 @@ export function InstallQrDialog({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [onClose])
 
+  React.useEffect(() => {
+    if (state !== 'uploading') {
+      setUploadElapsedSeconds(0)
+      return
+    }
+    const startedAt = Date.now()
+    const timer = window.setInterval(() => {
+      setUploadElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000))
+    }, 1000)
+    return () => window.clearInterval(timer)
+  }, [state])
+
   const handlePrepareInstall = async () => {
     setState('uploading')
     setError('')
@@ -79,6 +99,7 @@ export function InstallQrDialog({
     setQrDataUrl('')
 
     try {
+      await waitForPaint()
       onLog?.(`Uploading signed IPA to Litterbox for ${expiry}`)
       const ipaUrl = await uploadSignedIpaToLitterbox(output, expiry)
       const nextResult = buildPaleraInstallUrls(
@@ -228,6 +249,26 @@ export function InstallQrDialog({
               />
             </div>
 
+            {state === 'uploading' && (
+              <div
+                className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3"
+                role="status"
+                aria-live="polite"
+                data-testid="install-upload-progress"
+              >
+                <div className="mb-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                  <span>Uploading signed IPA</span>
+                  <span>{uploadElapsedSeconds}s elapsed</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-background">
+                  <div className="upload-progress-indeterminate h-full w-1/3 rounded-full bg-yellow-500" />
+                </div>
+                <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                  Upload progress is indeterminate. Keep Sylva open until the install action appears.
+                </p>
+              </div>
+            )}
+
             <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="install-expiry">Temporary host duration</Label>
@@ -244,17 +285,13 @@ export function InstallQrDialog({
                 </select>
               </div>
 
-              <AnimateIcon
-                animate={state === 'uploading'}
-                loop={state === 'uploading'}
-                animateOnHover
-                asChild
-              >
+              {directInstall ? (
                 <Button
                   type="button"
                   onClick={handlePrepareInstall}
                   disabled={!canUpload}
-                  className="mt-auto h-9 gap-2"
+                  aria-busy={state === 'uploading'}
+                  className="mt-auto h-11 w-full gap-2 sm:w-auto"
                 >
                   {state === 'uploading' ? (
                     <LoaderCircle size={16} animate loop />
@@ -262,25 +299,32 @@ export function InstallQrDialog({
                     <Send size={16} />
                   )}
                   {state === 'uploading'
-                    ? 'Uploading...'
-                    : directInstall
-                      ? 'Prepare Installation'
-                      : 'Create QR'}
+                    ? 'Uploading signed IPA...'
+                    : 'Prepare Installation'}
                 </Button>
-              </AnimateIcon>
+              ) : (
+                <AnimateIcon
+                  animate={state === 'uploading'}
+                  loop={state === 'uploading'}
+                  animateOnHover
+                  asChild
+                >
+                  <Button
+                    type="button"
+                    onClick={handlePrepareInstall}
+                    disabled={!canUpload}
+                    className="mt-auto h-9 gap-2"
+                  >
+                    {state === 'uploading' ? (
+                      <LoaderCircle size={16} animate loop />
+                    ) : (
+                      <Send size={16} />
+                    )}
+                    {state === 'uploading' ? 'Uploading...' : 'Create QR'}
+                  </Button>
+                </AnimateIcon>
+              )}
             </div>
-
-            {state === 'uploading' && (
-              <div className="rounded-xl border border-border bg-muted/30 px-4 py-3">
-                <div className="mb-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                  <span>Uploading signed IPA</span>
-                  <span>In progress</span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-background">
-                  <div className="upload-progress-indeterminate h-full w-1/3 rounded-full bg-yellow-500" />
-                </div>
-              </div>
-            )}
 
             {error && (
               <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -315,15 +359,13 @@ export function InstallQrDialog({
                   Tap below to hand the temporary HTTPS manifest to iOS.
                 </p>
               </div>
-              <AnimateIcon animateOnHover asChild>
-                <a
-                  href={result.installUrl}
-                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-transparent bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                >
-                  <Send size={17} />
-                  Install on iPhone
-                </a>
-              </AnimateIcon>
+              <a
+                href={result.installUrl}
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-transparent bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                <Send size={17} />
+                Install on iPhone
+              </a>
               <p className="text-xs leading-5 text-muted-foreground">
                 iOS may ask you to confirm installation. Keep Sylva open until that prompt
                 appears.

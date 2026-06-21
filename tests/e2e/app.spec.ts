@@ -281,6 +281,38 @@ test.describe("mobile availability", () => {
     await expect(page.getByAltText("Install Sylva Mobile QR code")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Copy iPhone Install Link" })).toHaveCount(0);
   });
+
+  test("scrolls to live signing logs before mobile worker startup", async ({ page }) => {
+    const { p12Bytes, profile } = syntheticSigningFiles();
+    const ipa = await syntheticIpa();
+    await page.goto("/");
+    await page.getByRole("button", { name: "Continue" }).click();
+    await page.setInputFiles("#ipa", {
+      name: "SylvaTest.ipa",
+      mimeType: "application/zip",
+      buffer: Buffer.from(ipa)
+    });
+    await page.setInputFiles("#p12", {
+      name: "sylva-test.p12",
+      mimeType: "application/x-pkcs12",
+      buffer: p12Bytes
+    });
+    await page.setInputFiles("#profiles", {
+      name: "sylva-test.mobileprovision",
+      mimeType: "application/octet-stream",
+      buffer: profile
+    });
+    await page.locator("#cert-password").fill("sylva-test");
+
+    const signButton = page.getByRole("button", { name: "Sign IPA" });
+    await expect(signButton).toBeEnabled();
+    await signButton.click();
+    await expect(page.getByText("Initializing local WebAssembly signing session")).toBeVisible();
+    await expect.poll(async () => {
+      const box = await page.getByTestId("signing-console").boundingBox();
+      return Boolean(box && box.y >= 0 && box.y < 120);
+    }).toBe(true);
+  });
 });
 
 test("initializes the low-memory OPFS zsign runtime in a worker", async ({ page }) => {

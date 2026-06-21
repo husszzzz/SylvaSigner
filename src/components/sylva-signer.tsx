@@ -446,15 +446,13 @@ function PreviousIpasDialog({
                           </Button>
                         </AnimateIcon>
                         {directInstall && !expired ? (
-                          <AnimateIcon animateOnHover asChild>
-                            <a
-                              href={entry.installUrl}
-                              className="inline-flex h-8 items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                            >
-                              <Send size={14} />
-                              Install on iPhone
-                            </a>
-                          </AnimateIcon>
+                          <a
+                            href={entry.installUrl}
+                            className="inline-flex h-8 items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                          >
+                            <Send size={14} />
+                            Install on iPhone
+                          </a>
                         ) : !directInstall ? (
                           <AnimateIcon animateOnHover asChild>
                             <Button
@@ -941,6 +939,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
   const [welcomeOpen, setWelcomeOpen] = React.useState(true)
   const [currentHistoryId, setCurrentHistoryId] = React.useState('')
   const installMetadataRef = React.useRef<Partial<InstallMetadata>>({})
+  const consoleRef = React.useRef<HTMLDivElement>(null)
 
   const canSign = Boolean(ipa[0] && (p12[0] || cachedCertInfo?.p12) && (profiles.length || cachedCertInfo?.profiles.length)) && state !== 'signing'
   const hasCache = Boolean(cachedCertInfo?.p12 || cachedCertInfo?.profiles.length || cachedCertInfo?.password)
@@ -1159,7 +1158,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
   }, [bundleId, cacheCert, cachedCertInfo, certPassword, dylibs, ipa, mobileMode, outputName, p12, profiles])
 
   const handleSign = async () => {
-    window.scrollTo({ top: 0, behavior: mobileMode ? 'auto' : 'smooth' })
+    if (!mobileMode) window.scrollTo({ top: 0, behavior: 'smooth' })
     setState('signing')
     setLogs([])
     setOutputs([])
@@ -1182,7 +1181,12 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
     if (mobileMode) {
       addLog('warn', 'Mobile compatibility mode enabled: native archive operations may take longer')
       await new Promise<void>((resolve) => {
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            consoleRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' })
+            requestAnimationFrame(() => resolve())
+          })
+        })
       })
     }
 
@@ -1542,7 +1546,11 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
               profiles={profileMetadata}
             />
           )}
-          <div className="h-[420px] max-h-[520px] lg:h-[calc(100vh-12rem)] lg:max-h-[680px]">
+          <div
+            ref={consoleRef}
+            data-testid="signing-console"
+            className="h-[420px] max-h-[520px] scroll-mt-4 lg:h-[calc(100vh-12rem)] lg:max-h-[680px]"
+          >
             <LogConsole
               logs={logs}
               active={state === 'signing' && !mobileMode}
