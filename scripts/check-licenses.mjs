@@ -5,8 +5,10 @@ const packageJson = JSON.parse(readFileSync(new URL('package.json', root), 'utf8
 const requiredFiles = [
   'LICENSE',
   'THIRD_PARTY_NOTICES.md',
+  'licenses/animate-ui.txt',
   'licenses/openssl-3.5.7.txt',
   'public/fonts/inter/OFL.txt',
+  'src/components/animate-ui/NOTICE.md',
   'vendor/zsign/LICENSE',
 ]
 const forbiddenFiles = [
@@ -37,4 +39,6 @@ if (missing.length || forbidden.length || missingPackageLicenses.length) {
   process.exit(1)
 }
 
-console.log(`License check OK: ${copiedLicenses.size} direct runtime package notices present.`)
+console.log(
+  `License check OK: ${copiedLicenses.size} direct runtime package notices and copied component notices present.`,
+)

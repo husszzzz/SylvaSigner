@@ -345,6 +345,12 @@ All direct packages are listed here for transparency. `package-lock.json` record
 versions and transitive packages. Exact direct runtime license texts are preserved under
 `licenses/npm/`.
 
+The animated icon components under `src/components/animate-ui/` are adapted
+from [Animate UI](https://animate-ui.com/) and use Lucide icon geometry. Animate
+UI is distributed here as part of the application under its MIT plus Commons
+Clause terms; the exact license and component notice are preserved at
+`licenses/animate-ui.txt` and `src/components/animate-ui/NOTICE.md`.
+
 | Runtime package | Purpose | License |
 | --- | --- | --- |
 | `@base-ui/react` | Accessible UI primitives | MIT |
@@ -379,6 +385,8 @@ uses zsign (MIT), zlib/minizip (zlib terms), OpenSSL 3.5.7 (Apache-2.0), and Ems
   port for this browser proof of concept.
 - Optional temporary IPA hosting is provided by
   [Litterbox](https://litterbox.catbox.moe/).
+- Animated interface icons are adapted from [Animate UI](https://animate-ui.com/)
+  and use [Lucide](https://lucide.dev/) icon geometry.
 - Created by [AntonP29](https://github.com/AntonP29).
 
 See the in-app Privacy Policy and Legal pages before using Sylva Signer for distribution

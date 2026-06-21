@@ -866,6 +866,7 @@ function AppDetailsTile({
   appLoading,
   appError,
   certificate,
+  certificateFile,
   certificateMessage,
   profiles,
 }: {
@@ -874,6 +875,7 @@ function AppDetailsTile({
   appLoading: boolean
   appError: string
   certificate: CertificateMetadata | null
+  certificateFile?: File
   certificateMessage: string
   profiles: ProvisioningMetadata[]
 }) {
@@ -932,7 +934,7 @@ function AppDetailsTile({
         ))}
       </div>
 
-      {(certificateMessage || certificate || profiles.length > 0) && (
+      {(certificateFile || certificateMessage || certificate || profiles.length > 0) && (
         <div className="space-y-3 border-t border-border px-4 py-4">
           <div className="flex items-start gap-3">
             <AnimateIcon animateOnHover>
@@ -941,11 +943,16 @@ function AppDetailsTile({
             <div className="min-w-0">
               <p className="text-xs text-muted-foreground">Signing certificate</p>
               <p className="truncate text-sm font-medium">
-                {certificate?.name || certificateMessage}
+                {certificate?.name || certificateFile?.name || 'Signing certificate'}
               </p>
               {certificate && (
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   Expires {formatMetadataDate(certificate.expiresAt)}
+                </p>
+              )}
+              {!certificate && certificateMessage && (
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {certificateMessage}
                 </p>
               )}
             </div>
@@ -1080,10 +1087,13 @@ function SignerApp() {
   }, [ipa])
 
   React.useEffect(() => {
+    setCertificateMetadata(null)
+    setCertificateMessage(p12[0] ? 'Reading certificate...' : '')
+  }, [p12])
+
+  React.useEffect(() => {
     const file = p12[0]
     let cancelled = false
-    setCertificateMetadata(null)
-    setCertificateMessage(file ? 'Reading certificate...' : '')
     if (!file) return
 
     const timer = window.setTimeout(() => {
@@ -1576,6 +1586,7 @@ function SignerApp() {
               appLoading={appMetadataLoading}
               appError={appMetadataError}
               certificate={certificateMetadata}
+              certificateFile={p12[0]}
               certificateMessage={certificateMessage}
               profiles={profileMetadata}
             />

@@ -177,6 +177,10 @@ test("shows certificate and provisioning expiration details locally", async ({ p
   await expect(page.getByText("Expires Jun 22, 2030", { exact: true })).toBeVisible();
   await expect(page.getByText("Sylva Development Profile", { exact: true })).toBeVisible();
   await expect(page.getByText("Expires Jul 23, 2030", { exact: true })).toBeVisible();
+
+  await page.locator("#cert-password").fill("temporarily-wrong");
+  await expect(page.getByText("Sylva Test Certificate", { exact: true })).toBeVisible();
+  await expect(page.getByText("Expires Jun 22, 2030", { exact: true })).toBeVisible();
 });
 
 test("opens privacy and legal pages from the footer", async ({ page }) => {

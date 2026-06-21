@@ -38,6 +38,18 @@ under `licenses/npm/`. Transitive package versions and integrity hashes are
 recorded in `package-lock.json`; their license files are installed alongside
 them by `npm install`.
 
+## Copied interface components
+
+[Animate UI](https://animate-ui.com/) by Elliot Sutton provides the animated
+icon wrappers, animations, and related primitives under
+`src/components/animate-ui/`. These files are used and distributed as part of
+the Sylva Signer application, not as a standalone component library. Animate
+UI's MIT plus Commons Clause license is preserved at
+`licenses/animate-ui.txt`, and a source notice is kept beside the components at
+`src/components/animate-ui/NOTICE.md`. The icon geometry is based on Lucide;
+Lucide and Feather-derived notices are preserved at
+`licenses/npm/lucide-react.txt`.
+
 ## External services
 
 Litterbox/Catbox and Palera are optional external services, not bundled
