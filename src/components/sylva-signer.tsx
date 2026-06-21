@@ -1067,14 +1067,14 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
         } catch {
           return { name: profile.name, expiresAt: '' }
         }
-            <a
-              className="font-medium text-sky-300 transition-colors hover:text-sky-200 hover:underline"
-              href="https://github.com/zhlynn/zsign"
-              target="_blank"
-              rel="noreferrer"
-            >
-              zsign
-            </a>
+      }),
+    ).then((metadata) => {
+      if (!cancelled) setProfileMetadata(metadata)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [profiles])
   const addLog = React.useCallback((level: LogLevel, message: string) => {
     const time = new Date().toLocaleTimeString('en-US', { hour12: false })
     setLogs((prev) => [...prev, { id: ++logCounter, time, level, message }])
