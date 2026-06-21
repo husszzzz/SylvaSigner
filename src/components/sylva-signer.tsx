@@ -485,7 +485,7 @@ function PreviousIpasDialog({
 
 function WelcomeMark() {
   return (
-    <div className="welcome-mark relative mx-auto size-32 md:size-36" aria-label="Sylva Signer">
+    <div className="welcome-mark relative mx-auto size-24 md:size-28" aria-label="Sylva Signer">
       <img
         src="/icon-light.png"
         alt=""
@@ -509,11 +509,11 @@ function WelcomeDialog({ onClose }: { onClose: () => void }) {
       aria-labelledby="welcome-title"
     >
       <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
-        <div className="px-6 pt-5">
+        <div className="px-6 py-8">
           <WelcomeMark />
         </div>
 
-        <div className="-mt-2 space-y-4 px-6 pb-6 text-center">
+        <div className="space-y-4 px-6 pb-6 text-center">
           <div>
             <h2 id="welcome-title" className="text-2xl font-semibold tracking-tight">
               Hey there 👋
