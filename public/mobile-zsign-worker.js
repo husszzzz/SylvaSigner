@@ -1,6 +1,6 @@
 /* global createZsignModule, importScripts */
 
-const runtimeVersion = 'wasm_28a6421_mobile_classic_v1'
+const runtimeVersion = 'wasm_28a6421_dylib_fix_v2'
 
 function normalizePath(path) {
   const normalized = path.replaceAll('\\', '/')

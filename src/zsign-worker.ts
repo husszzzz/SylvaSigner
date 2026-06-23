@@ -34,7 +34,7 @@ type IterableDirectoryHandle = FileSystemDirectoryHandle & {
 
 const ctx = self as DedicatedWorkerGlobalScope;
 const importModule = new Function("url", "return import(url)") as (url: string) => Promise<ZsignImport>;
-const wasmCacheBust = "wasm_28a6421_mobile_native_v1";
+const wasmCacheBust = "wasm_28a6421_dylib_fix_v2";
 const opfsProjectDir = "sylva-zsign";
 
 type BrowserZipPlan = {

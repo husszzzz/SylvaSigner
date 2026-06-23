@@ -21,7 +21,7 @@ function getWorker(mode: "standard" | "mobile-native") {
 
   workerMode = mode;
   worker = mode === "mobile-native"
-    ? new Worker(`/mobile-zsign-worker.js?v=wasm_28a6421_mobile_classic_v1`)
+    ? new Worker(`/mobile-zsign-worker.js?v=wasm_28a6421_dylib_fix_v2`)
     : new Worker(new URL("./zsign-worker.ts", import.meta.url), { type: "module" });
   worker.addEventListener("message", (event: MessageEvent) => {
     const message = event.data as {
