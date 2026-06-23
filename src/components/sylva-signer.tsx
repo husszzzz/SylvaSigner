@@ -1428,6 +1428,16 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
               <span className="hidden sm:inline">Previous IPAs</span>
             </Button>
           </AnimateIcon>
+          <a
+            href="https://github.com/AntonP29/SylvaSigner"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Open Sylva Signer on GitHub"
+            title="GitHub"
+            className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-all hover:bg-muted hover:text-sky-400 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50"
+          >
+            <GithubIcon size={16} />
+          </a>
           <ThemeToggle />
         </div>
       </header>

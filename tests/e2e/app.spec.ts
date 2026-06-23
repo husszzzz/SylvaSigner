@@ -189,6 +189,10 @@ test("loads the exact Sylva signing work surface without external network reques
   await expect(page.getByText("Fully local IPA signing in your browser")).toBeVisible();
   await expect(page.getByText("Private by design")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Previous IPAs" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open Sylva Signer on GitHub" })).toHaveAttribute(
+    "href",
+    "https://github.com/AntonP29/SylvaSigner"
+  );
   await expect(page.getByRole("button", { name: "Sign IPA" })).toBeDisabled();
   await expect(page.locator("#ipa")).toBeAttached();
   await expect(page.locator("#p12")).toBeAttached();
