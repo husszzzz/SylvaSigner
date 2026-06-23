@@ -18,7 +18,55 @@ export type ProvisioningMetadata = {
   expiresAt: string
 }
 
+export type DylibArchitectureMetadata = {
+  architecture: string
+  fileType: string
+  installName?: string
+  minOs?: string
+  sdk?: string
+  dependencyCount: number
+  uuid?: string
+}
+
+export type DylibMetadata = {
+  name: string
+  size: number
+  architectures: DylibArchitectureMetadata[]
+}
+
 type PlistRecord = Record<string, unknown>
+
+const machoCpuTypes = new Map<number, string>([
+  [7, 'i386'],
+  [12, 'armv7'],
+  [18, 'ppc'],
+  [0x01000007, 'x86_64'],
+  [0x0100000c, 'arm64'],
+])
+
+const machoFileTypes = new Map<number, string>([
+  [1, 'Object'],
+  [2, 'Executable'],
+  [3, 'Fixed VM library'],
+  [4, 'Core file'],
+  [5, 'Preload'],
+  [6, 'Dynamic library'],
+  [7, 'Dynamic linker'],
+  [8, 'Bundle'],
+  [9, 'Dylib stub'],
+  [10, 'Debug symbols'],
+  [11, 'Kext bundle'],
+])
+
+const loadDylibCommands = new Set([
+  0x0c,
+  0x18,
+  0x80000018,
+  0x8000001f,
+  0x20,
+  0x80000023,
+  0x80000034,
+])
 
 function parseXmlNode(element: Element): unknown {
   if (element.tagName === 'dict') {
@@ -70,6 +118,136 @@ function arrayStrings(value: unknown) {
 
 function exactArrayBuffer(bytes: Uint8Array) {
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer
+}
+
+function readNullTerminatedString(bytes: Uint8Array, start: number, maxEnd: number) {
+  if (start < 0 || start >= bytes.length || start >= maxEnd) return ''
+  let end = start
+  const boundedEnd = Math.min(maxEnd, bytes.length)
+  while (end < boundedEnd && bytes[end] !== 0) end += 1
+  return new TextDecoder().decode(bytes.subarray(start, end)).trim()
+}
+
+function formatMachoVersion(value: number) {
+  const major = (value >>> 16) & 0xffff
+  const minor = (value >>> 8) & 0xff
+  const patch = value & 0xff
+  return patch ? `${major}.${minor}.${patch}` : `${major}.${minor}`
+}
+
+function formatUuid(bytes: Uint8Array) {
+  const hex = [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('')
+  if (hex.length !== 32) return undefined
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20),
+  ].join('-').toUpperCase()
+}
+
+function cpuName(cpuType: number, cpuSubtype: number) {
+  const base = machoCpuTypes.get(cpuType) ?? `CPU ${cpuType}`
+  if (cpuType === 0x0100000c && (cpuSubtype & 0xff) === 2) return 'arm64e'
+  if (cpuType === 12) {
+    const subtype = cpuSubtype & 0xff
+    if (subtype === 9) return 'armv7'
+    if (subtype === 11) return 'armv7s'
+  }
+  return base
+}
+
+function readMachoArchitecture(bytes: Uint8Array, offset: number): DylibArchitectureMetadata {
+  if (offset < 0 || offset + 28 > bytes.length) throw new Error('The Mach-O header is truncated.')
+
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+  const magic = view.getUint32(offset, true)
+  const is64 = magic === 0xfeedfacf
+  const is32 = magic === 0xfeedface
+  if (!is64 && !is32) throw new Error('The selected dylib is not a supported Mach-O binary.')
+
+  const headerSize = is64 ? 32 : 28
+  const cpuType = view.getInt32(offset + 4, true)
+  const cpuSubtype = view.getInt32(offset + 8, true)
+  const fileType = view.getUint32(offset + 12, true)
+  const ncmds = view.getUint32(offset + 16, true)
+  const sizeofcmds = view.getUint32(offset + 20, true)
+  const commandsStart = offset + headerSize
+  const commandsEnd = commandsStart + sizeofcmds
+  if (commandsEnd > bytes.length) throw new Error('The Mach-O load commands are truncated.')
+
+  let installName = ''
+  let minOs = ''
+  let sdk = ''
+  let uuid: string | undefined
+  let dependencyCount = 0
+  let commandOffset = commandsStart
+
+  for (let index = 0; index < ncmds; index += 1) {
+    if (commandOffset + 8 > commandsEnd) throw new Error('The Mach-O load command table is truncated.')
+    const command = view.getUint32(commandOffset, true)
+    const commandSize = view.getUint32(commandOffset + 4, true)
+    if (commandSize < 8 || commandOffset + commandSize > commandsEnd) {
+      throw new Error('The Mach-O load command size is invalid.')
+    }
+
+    if (command === 0x0d && commandSize >= 24) {
+      const nameOffset = view.getUint32(commandOffset + 8, true)
+      installName = readNullTerminatedString(
+        bytes,
+        commandOffset + nameOffset,
+        commandOffset + commandSize,
+      )
+    } else if (loadDylibCommands.has(command) && commandSize >= 24) {
+      dependencyCount += 1
+    } else if (command === 0x25 && commandSize >= 16) {
+      minOs = formatMachoVersion(view.getUint32(commandOffset + 8, true))
+      sdk = formatMachoVersion(view.getUint32(commandOffset + 12, true))
+    } else if (command === 0x32 && commandSize >= 24) {
+      minOs = formatMachoVersion(view.getUint32(commandOffset + 12, true))
+      sdk = formatMachoVersion(view.getUint32(commandOffset + 16, true))
+    } else if (command === 0x1b && commandSize >= 24) {
+      uuid = formatUuid(bytes.subarray(commandOffset + 8, commandOffset + 24))
+    }
+
+    commandOffset += commandSize
+  }
+
+  return {
+    architecture: cpuName(cpuType, cpuSubtype),
+    fileType: machoFileTypes.get(fileType) ?? `Mach-O type ${fileType}`,
+    installName: installName || undefined,
+    minOs: minOs || undefined,
+    sdk: sdk || undefined,
+    dependencyCount,
+    uuid,
+  }
+}
+
+function readFatMachoOffsets(bytes: Uint8Array) {
+  if (bytes.length < 8) throw new Error('The dylib file is empty.')
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+  const magic = view.getUint32(0, false)
+  const isFat32 = magic === 0xcafebabe
+  const isFat64 = magic === 0xcafebabf
+  if (!isFat32 && !isFat64) return [0]
+
+  const count = view.getUint32(4, false)
+  const recordSize = isFat64 ? 32 : 20
+  const recordsEnd = 8 + count * recordSize
+  if (recordsEnd > bytes.length) throw new Error('The fat Mach-O header is truncated.')
+
+  const offsets: number[] = []
+  for (let index = 0; index < count; index += 1) {
+    const recordOffset = 8 + index * recordSize
+    const archOffset = isFat64
+      ? Number(view.getBigUint64(recordOffset + 8, false))
+      : view.getUint32(recordOffset + 8, false)
+    if (archOffset < bytes.length) offsets.push(archOffset)
+  }
+  if (offsets.length === 0) throw new Error('The fat Mach-O file does not contain readable slices.')
+  return offsets
 }
 
 function iconNames(info: PlistRecord) {
@@ -337,5 +515,18 @@ export async function extractProvisioningMetadata(file: Blob): Promise<Provision
   return {
     name: profileName || (file instanceof File ? file.name : 'Provisioning Profile'),
     expiresAt,
+  }
+}
+
+export async function extractDylibMetadata(file: Blob): Promise<DylibMetadata> {
+  const bytes = new Uint8Array(await file.arrayBuffer())
+  const architectures = readFatMachoOffsets(bytes).map((offset) =>
+    readMachoArchitecture(bytes, offset),
+  )
+
+  return {
+    name: file instanceof File ? file.name : 'Selected dylib',
+    size: file.size,
+    architectures,
   }
 }

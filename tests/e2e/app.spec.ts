@@ -233,11 +233,19 @@ test("extracts app metadata and fills the bundle ID when an IPA is selected", as
   await expect.poll(() => icon.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
   await expect(page.getByText("1.0", { exact: true })).toBeVisible();
 
-  await page.setInputFiles("#dylibs", "vendor/zsign/test/dylib/bin/demo1.dylib");
+  await page.setInputFiles("#dylibs", [
+    "vendor/zsign/test/dylib/bin/demo1.dylib",
+    "vendor/zsign/test/dylib/bin/demo2.dylib"
+  ]);
   await expect(page.getByText("Dylib injection")).toBeVisible();
-  await expect(page.getByText("1 dylib selected")).toBeVisible();
+  await expect(page.getByText("2 dylibs selected")).toBeVisible();
   await expect(page.getByText("demo1.dylib").nth(1)).toBeVisible();
-  await expect(page.getByText("50 KB")).toBeVisible();
+  await expect(page.getByText("demo2.dylib", { exact: true })).toBeVisible();
+  await expect(page.getByText("50 KB").first()).toBeVisible();
+  await expect(page.getByText("Dynamic library · arm64").first()).toBeVisible();
+  await expect(page.getByText("iOS 7.0+").first()).toBeVisible();
+  await expect(page.getByText("5 linked libraries").first()).toBeVisible();
+  await expect(page.getByText("demo.dylib").first()).toBeVisible();
 });
 
 test("shows certificate and provisioning expiration details locally", async ({ page }) => {

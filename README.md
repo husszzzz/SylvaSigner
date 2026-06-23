@@ -43,6 +43,8 @@ Made by [AntonP29](https://github.com/AntonP29). Project status: June 21, 2026.
   `.p12`, provisioning profile, and password directly from GitHub into the browser.
 - Dylib injection stages selected `.dylib` files in writable browser memory before
   zsign validation, matching upstream zsign's read-write Mach-O mapping behavior.
+- Selected dylibs are inspected locally as Mach-O files and summarized by architecture,
+  binary type, minimum iOS version, dependency count, and install-name basename.
 - Automatic app name, bundle ID, version, artwork, and IPA-size extraction when an IPA
   is selected; the detected bundle ID is loaded into the editable bundle-ID field.
 - Browser decoding for standard and Apple-optimized `CgBI` app icon PNGs, including
@@ -425,6 +427,9 @@ uses zsign (MIT), zlib/minizip (zlib terms), OpenSSL 3.5.7 (Apache-2.0), and Ems
 
 - Powered by [`zsign`](https://github.com/zhlynn/zsign), with a privacy-focused WebAssembly
   port for this browser proof of concept.
+- Optional public enterprise certificate listings are read at runtime from
+  [NovaCerts](https://github.com/NovaDev404/NovaCerts). Certificate files are not
+  vendored in this repository.
 - Optional temporary IPA hosting is provided by
   [Litterbox](https://litterbox.catbox.moe/).
 - Animated interface icons are adapted from [Animate UI](https://animate-ui.com/)

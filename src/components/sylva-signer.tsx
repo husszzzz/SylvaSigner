@@ -39,9 +39,11 @@ import type { InstallMetadata } from '@/install-api'
 import {
   extractAppMetadata,
   extractCertificateMetadata,
+  extractDylibMetadata,
   extractProvisioningMetadata,
   type AppMetadata,
   type CertificateMetadata,
+  type DylibMetadata,
   type ProvisioningMetadata,
 } from '@/app-metadata'
 import {
@@ -795,6 +797,9 @@ function formatMetadataSize(bytes: number) {
 function AppDetailsTile({
   ipa,
   dylibs,
+  dylibMetadata,
+  dylibMetadataLoading,
+  dylibMetadataErrors,
   app,
   appLoading,
   appError,
@@ -805,6 +810,9 @@ function AppDetailsTile({
 }: {
   ipa: File
   dylibs: File[]
+  dylibMetadata: Record<string, DylibMetadata>
+  dylibMetadataLoading: boolean
+  dylibMetadataErrors: Record<string, string>
   app: AppMetadata | null
   appLoading: boolean
   appError: string
@@ -890,20 +898,61 @@ function AppDetailsTile({
                 {dylibs.length} {dylibs.length === 1 ? 'dylib selected' : 'dylibs selected'}
               </p>
               <div className="mt-2 flex flex-col gap-1.5">
-                {dylibs.map((dylib) => (
-                  <div
-                    key={`${dylib.name}-${dylib.size}-${dylib.lastModified}`}
-                    className="flex min-w-0 items-center gap-2 rounded-lg border border-border bg-muted/25 px-2.5 py-2 text-xs"
-                  >
-                    <Blocks size={13} className="shrink-0 text-rose-500" />
-                    <span className="min-w-0 flex-1 break-all font-medium text-foreground/90">
-                      {dylib.name}
-                    </span>
-                    <span className="shrink-0 text-muted-foreground">
-                      {formatMetadataSize(dylib.size)}
-                    </span>
-                  </div>
-                ))}
+                {dylibs.map((dylib) => {
+                  const key = `${dylib.name}-${dylib.size}-${dylib.lastModified}`
+                  const metadata = dylibMetadata[key]
+                  const primaryArchitecture = metadata?.architectures[0]
+                  const architectures = metadata?.architectures.map((item) => item.architecture).join(', ')
+                  const minOsValues = [
+                    ...new Set(metadata?.architectures.map((item) => item.minOs).filter(Boolean)),
+                  ]
+                  const dependencyCount = metadata?.architectures.reduce(
+                    (max, item) => Math.max(max, item.dependencyCount),
+                    0,
+                  )
+                  const error = dylibMetadataErrors[key]
+
+                  return (
+                    <div
+                      key={key}
+                      className="min-w-0 rounded-lg border border-border bg-muted/25 px-2.5 py-2 text-xs"
+                    >
+                      <div className="flex min-w-0 items-center gap-2">
+                        <Blocks size={13} className="shrink-0 text-rose-500" />
+                        <span className="min-w-0 flex-1 break-all font-medium text-foreground/90">
+                          {dylib.name}
+                        </span>
+                        <span className="shrink-0 text-muted-foreground">
+                          {formatMetadataSize(dylib.size)}
+                        </span>
+                      </div>
+                      {metadata ? (
+                        <div className="mt-1.5 grid gap-1 text-muted-foreground sm:grid-cols-2">
+                          <span className="truncate">
+                            {primaryArchitecture?.fileType ?? 'Mach-O'} · {architectures || 'Unknown arch'}
+                          </span>
+                          <span className="truncate">
+                            {minOsValues.length ? `iOS ${minOsValues.join(', ')}+` : 'Minimum OS unavailable'}
+                          </span>
+                          <span className="truncate">
+                            {typeof dependencyCount === 'number'
+                              ? `${dependencyCount} linked ${dependencyCount === 1 ? 'library' : 'libraries'}`
+                              : 'Dependencies unavailable'}
+                          </span>
+                          <span className="truncate" title={primaryArchitecture?.installName}>
+                            {primaryArchitecture?.installName
+                              ? primaryArchitecture.installName.split('/').at(-1)
+                              : 'Install name unavailable'}
+                          </span>
+                        </div>
+                      ) : error ? (
+                        <p className="mt-1.5 text-muted-foreground">{error}</p>
+                      ) : dylibMetadataLoading ? (
+                        <p className="mt-1.5 text-muted-foreground">Reading Mach-O metadata...</p>
+                      ) : null}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           </div>
@@ -973,6 +1022,9 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
   const [certificateMetadata, setCertificateMetadata] = React.useState<CertificateMetadata | null>(null)
   const [certificateMessage, setCertificateMessage] = React.useState('')
   const [profileMetadata, setProfileMetadata] = React.useState<ProvisioningMetadata[]>([])
+  const [dylibMetadata, setDylibMetadata] = React.useState<Record<string, DylibMetadata>>({})
+  const [dylibMetadataLoading, setDylibMetadataLoading] = React.useState(false)
+  const [dylibMetadataErrors, setDylibMetadataErrors] = React.useState<Record<string, string>>({})
   const [publicCerts, setPublicCerts] = React.useState<NovaCertEntry[]>([])
   const [publicCertsLoading, setPublicCertsLoading] = React.useState(false)
   const [publicCertImportingId, setPublicCertImportingId] = React.useState('')
@@ -1135,6 +1187,55 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
       cancelled = true
     }
   }, [profiles])
+
+  React.useEffect(() => {
+    let cancelled = false
+    if (dylibs.length === 0) {
+      setDylibMetadata({})
+      setDylibMetadataErrors({})
+      setDylibMetadataLoading(false)
+      return
+    }
+
+    setDylibMetadataLoading(true)
+    setDylibMetadataErrors({})
+    type DylibMetadataResult =
+      | { key: string; metadata: DylibMetadata }
+      | { key: string; error: string }
+
+    void Promise.all(
+      dylibs.map(async (dylib): Promise<DylibMetadataResult> => {
+        const key = `${dylib.name}-${dylib.size}-${dylib.lastModified}`
+        try {
+          return { key, metadata: await extractDylibMetadata(dylib) }
+        } catch (error) {
+          return {
+            key,
+            error: error instanceof Error ? error.message : 'Dylib metadata unavailable.',
+          }
+        }
+      }),
+    )
+      .then((results) => {
+        if (cancelled) return
+        const nextMetadata: Record<string, DylibMetadata> = {}
+        const nextErrors: Record<string, string> = {}
+        for (const result of results) {
+          if ('error' in result) nextErrors[result.key] = result.error
+          else nextMetadata[result.key] = result.metadata
+        }
+        setDylibMetadata(nextMetadata)
+        setDylibMetadataErrors(nextErrors)
+      })
+      .finally(() => {
+        if (!cancelled) setDylibMetadataLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [dylibs])
+
   const addLog = React.useCallback((level: LogLevel, message: string) => {
     const time = new Date().toLocaleTimeString('en-US', { hour12: false })
     setLogs((prev) => [...prev, { id: ++logCounter, time, level, message }])
@@ -1758,6 +1859,9 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
             <AppDetailsTile
               ipa={ipa[0]}
               dylibs={dylibs}
+              dylibMetadata={dylibMetadata}
+              dylibMetadataLoading={dylibMetadataLoading}
+              dylibMetadataErrors={dylibMetadataErrors}
               app={appMetadata}
               appLoading={appMetadataLoading}
               appError={appMetadataError}
