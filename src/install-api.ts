@@ -14,10 +14,18 @@ export type TemporaryInstallResult = {
   installUrl: string
 }
 
+export type UploadProgress = {
+  loaded: number
+  total: number
+  percent: number
+}
+
 const litterboxEndpoint = 'https://litterbox.catbox.moe/resources/internals/api.php'
 const litterboxHost = 'https://litter.catbox.moe/'
 const litterboxMaxFileSize = 1024 * 1024 * 1024
 const paleraManifestEndpoint = 'https://api.palera.in/genPlist'
+export const sylvaProxyBaseUrl = 'https://sylvacors.antonp29.dev'
+export const sylvaProxyMaxFileSize = 100 * 1024 * 1024
 
 function isAppleMobileBrowser() {
   if (typeof navigator === 'undefined') return false
@@ -27,10 +35,18 @@ function isAppleMobileBrowser() {
   )
 }
 
-function uploadFormWithXhr(form: FormData) {
+function uploadFormWithXhr(
+  form: FormData,
+  endpoint: string,
+  options: {
+    errorMessage: string
+    onProgress?: (progress: UploadProgress) => void
+    attachProgress?: boolean
+  },
+) {
   return new Promise<{ ok: boolean; status: number; text: string }>((resolve, reject) => {
     const request = new XMLHttpRequest()
-    request.open('POST', litterboxEndpoint)
+    request.open('POST', endpoint)
     request.onload = () => {
       resolve({
         ok: request.status >= 200 && request.status < 300,
@@ -39,14 +55,19 @@ function uploadFormWithXhr(form: FormData) {
       })
     }
     request.onerror = () => {
-      reject(
-        new Error(
-          'Mobile Safari could not connect to Litterbox. Check content blockers, Private Relay, or the current network and retry.',
-        ),
-      )
+      reject(new Error(options.errorMessage))
     }
     request.onabort = () => reject(new Error('The Litterbox upload was cancelled.'))
-    // Do not attach xhr.upload listeners: they trigger a preflight that Litterbox rejects.
+    if (options.attachProgress && options.onProgress) {
+      request.upload.onprogress = (event) => {
+        if (!event.lengthComputable) return
+        options.onProgress?.({
+          loaded: event.loaded,
+          total: event.total,
+          percent: Math.round((event.loaded / event.total) * 100),
+        })
+      }
+    }
     request.send(form)
   })
 }
@@ -66,6 +87,7 @@ async function uploadFormWithFetch(form: FormData) {
 export async function uploadSignedIpaToLitterbox(
   output: OutputFile,
   expiry: LitterboxExpiry = '1h',
+  options: { onProgress?: (progress: UploadProgress) => void } = {},
 ) {
   const outputSize = output.data instanceof Blob ? output.data.size : output.data.byteLength
   if (outputSize > litterboxMaxFileSize) {
@@ -84,9 +106,18 @@ export async function uploadSignedIpaToLitterbox(
   form.append('time', expiry)
   form.append('fileToUpload', blob, fileName)
 
-  const response = isAppleMobileBrowser()
-    ? await uploadFormWithXhr(form)
-    : await uploadFormWithFetch(form)
+  const response = outputSize <= sylvaProxyMaxFileSize
+    ? await uploadFormWithXhr(form, `${sylvaProxyBaseUrl}/litterbox`, {
+        attachProgress: true,
+        onProgress: options.onProgress,
+        errorMessage: 'Sylva upload proxy could not connect to Litterbox. Retry, or download the signed IPA locally.',
+      })
+    : isAppleMobileBrowser()
+      ? await uploadFormWithXhr(form, litterboxEndpoint, {
+          errorMessage:
+            'Mobile Safari could not connect to Litterbox. Check content blockers, Private Relay, or the current network and retry.',
+        })
+      : await uploadFormWithFetch(form)
 
   if (!response.ok) {
     throw new Error(`Litterbox upload failed with HTTP ${response.status}.`)

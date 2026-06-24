@@ -16,6 +16,7 @@ import {
   type InstallMetadata,
   type LitterboxExpiry,
   type TemporaryInstallResult,
+  type UploadProgress,
   uploadSignedIpaToLitterbox,
 } from '@/install-api'
 import type { OutputFile } from '@/types'
@@ -66,6 +67,7 @@ export function InstallQrDialog({
   const [qrDataUrl, setQrDataUrl] = React.useState('')
   const [copied, setCopied] = React.useState(false)
   const [uploadElapsedSeconds, setUploadElapsedSeconds] = React.useState(0)
+  const [uploadProgress, setUploadProgress] = React.useState<UploadProgress | null>(null)
 
   const canUpload = Boolean(
     state !== 'uploading' && appName.trim() && bundleId.trim() && version.trim(),
@@ -97,11 +99,14 @@ export function InstallQrDialog({
     setCopied(false)
     setResult(null)
     setQrDataUrl('')
+    setUploadProgress(null)
 
     try {
       await waitForPaint()
       onLog?.(`Uploading signed IPA to Litterbox for ${expiry}`)
-      const ipaUrl = await uploadSignedIpaToLitterbox(output, expiry)
+      const ipaUrl = await uploadSignedIpaToLitterbox(output, expiry, {
+        onProgress: setUploadProgress,
+      })
       const nextResult = buildPaleraInstallUrls(
         {
           appName: appName.trim(),
@@ -258,13 +263,24 @@ export function InstallQrDialog({
               >
                 <div className="mb-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
                   <span>Uploading signed IPA</span>
-                  <span>{uploadElapsedSeconds}s elapsed</span>
+                  <span>
+                    {uploadProgress ? `${uploadProgress.percent}%` : `${uploadElapsedSeconds}s elapsed`}
+                  </span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-background">
-                  <div className="upload-progress-indeterminate h-full w-1/3 rounded-full bg-yellow-500" />
+                  <div
+                    className={
+                      uploadProgress
+                        ? 'h-full rounded-full bg-yellow-500 transition-[width]'
+                        : 'upload-progress-indeterminate h-full w-1/3 rounded-full bg-yellow-500'
+                    }
+                    style={uploadProgress ? { width: `${uploadProgress.percent}%` } : undefined}
+                  />
                 </div>
                 <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                  Upload progress is indeterminate. Keep Sylva open until the install action appears.
+                  {uploadProgress
+                    ? 'Upload progress is measured to Sylva proxy. Keep this tab open while Litterbox finishes.'
+                    : 'Upload progress is indeterminate. Keep Sylva open until the install action appears.'}
                 </p>
               </div>
             )}

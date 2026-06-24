@@ -60,6 +60,7 @@ import {
   type NovaCertEntry,
 } from '@/public-certs'
 import { saveOutput, signIpa } from '@/zsign-api'
+import { sylvaProxyBaseUrl } from '@/install-api'
 import type { OutputFile, SignIpaOptions, ZsignProgress } from '@/types'
 import { cn } from '@/lib/utils'
 
@@ -209,6 +210,15 @@ function readableDownloadError(error: unknown) {
     return 'The browser could not download that URL. The host may block cross-origin downloads.'
   }
   return error instanceof Error ? error.message : String(error)
+}
+
+async function proxyErrorMessage(response: Response) {
+  try {
+    const body = await response.json() as { message?: string }
+    return body.message || `Sylva proxy failed with HTTP ${response.status}.`
+  } catch {
+    return `Sylva proxy failed with HTTP ${response.status}.`
+  }
 }
 
 function cleanLogLine(line: string) {
@@ -1353,10 +1363,20 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
     setIpaUrlDownloading(true)
     setIpaUrlError('')
     setIpaUrlProgress('Starting download...')
-    addLog('info', `Downloading IPA from URL: ${url.href}`)
+    addLog('info', `Downloading IPA through Sylva proxy: ${url.href}`)
 
     try {
-      const response = await fetch(url.href, { signal: controller.signal })
+      const proxiedUrl = new URL('/ipa', sylvaProxyBaseUrl)
+      proxiedUrl.searchParams.set('url', url.href)
+      let response = await fetch(proxiedUrl.href, { signal: controller.signal })
+      if (response.status === 413) {
+        addLog('warn', 'Remote IPA is over the proxy limit; using direct browser download path')
+        setIpaUrlProgress('Proxy limit exceeded. Trying direct browser download...')
+        response = await fetch(url.href, { signal: controller.signal })
+      } else if (!response.ok) {
+        throw new Error(await proxyErrorMessage(response))
+      }
+
       if (!response.ok) {
         throw new Error(`Download failed with HTTP ${response.status}.`)
       }

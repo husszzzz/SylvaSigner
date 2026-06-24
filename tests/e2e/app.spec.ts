@@ -114,7 +114,7 @@ test("parses only currently signed NovaCerts enterprise certificates", () => {
   });
 });
 
-test("uses a preflight-free multipart XHR for Apple mobile uploads", async () => {
+test("uploads small signed IPAs through the Sylva proxy", async () => {
   const runtime = globalThis as typeof globalThis & {
     navigator: Navigator;
     XMLHttpRequest: typeof XMLHttpRequest;
@@ -130,6 +130,7 @@ test("uses a preflight-free multipart XHR for Apple mobile uploads", async () =>
     onload: (() => void) | null = null;
     onerror: (() => void) | null = null;
     onabort: (() => void) | null = null;
+    upload: { onprogress: ((event: ProgressEvent) => void) | null } = { onprogress: null };
 
     open(method: string, url: string) {
       opened = `${method} ${url}`;
@@ -160,7 +161,7 @@ test("uses a preflight-free multipart XHR for Apple mobile uploads", async () =>
       type: "application/zip",
       data: new Blob(["test"])
     });
-    expect(opened).toBe("POST https://litterbox.catbox.moe/resources/internals/api.php");
+    expect(opened).toBe("POST https://sylvacors.antonp29.dev/litterbox");
     expect(result).toBe("https://litter.catbox.moe/mobile-test.ipa");
     expect(sentForm).toBeInstanceOf(FormData);
     expect((sentForm?.get("fileToUpload") as File).name).toBe("test.ipa");
@@ -217,7 +218,9 @@ test("derives output name from selected IPA and keeps live logs visible", async 
 
 test("imports an IPA from a URL and selects it for signing", async ({ page }) => {
   const ipa = await syntheticIpa();
-  await page.route("**/remote-test.ipa", async (route) => {
+  await page.route("https://sylvacors.antonp29.dev/ipa**", async (route) => {
+    const url = new URL(route.request().url());
+    expect(url.searchParams.get("url")).toContain("/remote-test.ipa");
     await route.fulfill({
       status: 200,
       contentType: "application/octet-stream",
