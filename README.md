@@ -15,8 +15,9 @@ profile, password, injected dylibs, and signed output are processed on the user'
 
 An optional post-sign installation flow can temporarily upload **only the signed IPA**
 to [Litterbox](https://litterbox.catbox.moe/) and generate an iOS installation manifest
-through Palera. This action is separate from local signing and requires explicit user
-confirmation.
+through Palera. Small uploads are relayed through the Sylva Cloudflare Worker for upload
+progress; larger uploads keep the direct browser-to-Litterbox path. This action is
+separate from local signing and requires explicit user confirmation.
 
 Made by [AntonP29](https://github.com/AntonP29). Project status: June 21, 2026.
 
@@ -38,6 +39,8 @@ Made by [AntonP29](https://github.com/AntonP29). Project status: June 21, 2026.
 - Signing-stage progress based on zsign log milestones.
 - IPA, P12/PFX, provisioning profile, optional dylib, password, output name, and bundle
   ID controls.
+- Optional IPA URL import through the Sylva Cloudflare Worker for files up to 100 MB,
+  with direct browser download fallback for larger files.
 - Optional NovaCerts helper that reads the live README table, displays only public
   enterprise certificate rows currently marked `✅ Signed`, and imports the selected
   `.p12`, provisioning profile, and password directly from GitHub into the browser.
@@ -59,7 +62,8 @@ Made by [AntonP29](https://github.com/AntonP29). Project status: June 21, 2026.
 - Browser-local `Previous IPAs` history with `Fully Local`, `Active`, and `Expired`
   states, app artwork, and active install QR codes retained until their links expire.
 - Local download of the signed IPA.
-- Optional QR/direct iPhone install flow using Litterbox and Palera.
+- Optional QR/direct iPhone install flow using Litterbox and Palera, with measured upload
+  progress for signed IPAs up to 100 MB through the Sylva Cloudflare Worker.
 - Temporary hosting choices of `1h`, `12h`, `24h`, or `72h`.
 - Responsive light/dark interface, animated controls, matching favicons, an animated
   Sylva welcome mark, and locally bundled Inter variable fonts.
@@ -121,7 +125,9 @@ poll Litterbox to verify remote file availability.
 
 Temporary installation is not fully local. After confirmation:
 
-1. The already-signed IPA is uploaded directly from the browser to Litterbox over HTTPS.
+1. The already-signed IPA is uploaded over HTTPS. Signed IPAs up to 100 MB are sent
+   through `https://sylvacors.antonp29.dev/litterbox` so Sylva can show upload progress;
+   larger signed IPAs use the direct browser-to-Litterbox path.
 2. The original IPA, P12, provisioning profile, password, and dylibs are not uploaded.
 3. Sylva sends app metadata and the temporary IPA URL to Palera's manifest generator.
 4. Desktop browsers receive an `itms-services://` QR code and install link. On iPhone or
@@ -130,10 +136,19 @@ Temporary installation is not fully local. After confirmation:
 The temporary IPA URL is public to anyone who possesses it until it expires. Litterbox
 accepts files up to **1 GB**; Sylva rejects larger upload attempts before sending them.
 
+### Optional IPA URL import
+
+When an IPA URL is entered, Sylva first asks the Sylva Cloudflare Worker at
+`https://sylvacors.antonp29.dev/ipa?url=...` to fetch it. The Worker only permits browser
+requests from `https://sylva.antonp29.dev`, blocks obvious local/private-network targets,
+and enforces a 100 MB limit. If the Worker reports that the file is larger than 100 MB,
+Sylva falls back to the current direct browser download path. The downloaded IPA is then
+handled like a manually selected local file.
+
 ## Browser Workflow
 
 1. Open Sylva Signer and review the welcome notice.
-2. Select an `.ipa` file.
+2. Select an `.ipa` file, or paste an IPA URL and import it.
 3. Select a `.p12` or `.pfx` signing certificate.
 4. Select one or more `.mobileprovision` files.
 5. Enter the certificate password. Alternatively, use the public enterprise certificate
@@ -181,17 +196,17 @@ uploaded to Litterbox.
 ## Temporary Install Limitations
 
 - Maximum temporary upload size is 1 GB.
+- Signed IPAs up to 100 MB are uploaded through the Sylva Cloudflare Worker for progress
+  reporting. Larger signed IPAs use the direct Litterbox path.
 - Temporary durations are controlled by Litterbox.
 - The signed IPA is publicly accessible to anyone with its temporary URL.
 - Installation depends on Litterbox, Palera, Apple OTA behavior, device trust, and the
   signing certificate/provisioning profile.
 - Some networks or regions may block Catbox/Litterbox.
-- The upload bar is intentionally indeterminate and displays elapsed time. Sylva yields
-  before constructing the large upload body so mobile browsers can paint this state.
-  Browser upload progress listeners force a CORS preflight that Litterbox does not reliably
-  accept; plain multipart upload works without that preflight.
-- Apple mobile browsers use a plain XHR multipart transport without upload listeners because
-  Litterbox currently returns HTTP 405 to preflight requests. Desktop browsers use `fetch`.
+- The upload bar is determinate when the Sylva Worker path is used. It measures upload
+  progress to the Worker; the Worker still has to finish forwarding the file to Litterbox.
+- Direct Litterbox uploads remain indeterminate because browser upload progress listeners
+  force a CORS preflight that Litterbox does not reliably accept.
 - Blob URLs and localhost URLs are not suitable for installation on a separate iPhone.
 
 ## Quick Start
@@ -241,8 +256,9 @@ Required content types:
 .js/.mjs text/javascript or application/javascript
 ```
 
-No application backend is required for signing. Network access is used only for loading
-the hosted static app and for the explicitly approved temporary installation flow.
+No application backend is required for signing. Network access is used for loading the
+hosted static app, optional public certificate import, optional IPA URL import through
+`https://sylvacors.antonp29.dev`, and the explicitly approved temporary installation flow.
 
 ## TypeScript Interfaces
 
@@ -312,9 +328,9 @@ npm run test:e2e
 
 The Playwright suite verifies the Sylva work surface, welcome notice, standard and CgBI
 app metadata/artwork extraction, bundle-ID autofill, local P12/profile details, output
-naming, footer pages, active install history, the desktop archive path, direct mobile
-access, and a complete mobile-native sign/archive round trip. Normal page load is checked for
-unexpected external requests.
+naming, IPA URL import through the Sylva proxy, footer pages, active install history,
+the desktop archive path, direct mobile access, and a complete mobile-native sign/archive
+round trip. Normal page load is checked for unexpected external requests.
 
 ## Browser and Platform Limits
 
@@ -331,7 +347,8 @@ unexpected external requests.
   Android browsers can still terminate memory-intensive signing workers without recovery.
 - Large IPA performance depends on device CPU, memory, storage, and browser limits.
 - Extraction progress is byte-based; native zsign archive activity is indeterminate.
-- Litterbox upload progress is indeterminate for CORS compatibility.
+- Litterbox upload progress is measured only for signed IPAs that use the Sylva Worker
+  path. Larger direct uploads remain indeterminate for CORS compatibility.
 - Native `-i/--install` through `ideviceinstaller` is unsupported in browser-only mode.
 - Raw-socket live OCSP checks are unsupported in browser WebAssembly.
 - Native `system()` operations are stubbed as unsupported.
@@ -432,6 +449,8 @@ uses zsign (MIT), zlib/minizip (zlib terms), OpenSSL 3.5.7 (Apache-2.0), and Ems
   vendored in this repository.
 - Optional temporary IPA hosting is provided by
   [Litterbox](https://litterbox.catbox.moe/).
+- Optional IPA URL import and small signed-IPA upload progress use the Sylva Cloudflare
+  Worker at `https://sylvacors.antonp29.dev`.
 - Animated interface icons are adapted from [Animate UI](https://animate-ui.com/)
   and use [Lucide](https://lucide.dev/) icon geometry.
 - Created by [AntonP29](https://github.com/AntonP29).

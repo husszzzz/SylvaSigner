@@ -36,7 +36,8 @@ License, with third-party components remaining under the licenses documented in
    `public/fonts/inter/OFL.txt`, and `vendor/zsign/LICENSE` in releases and
    source archives.
 6. Confirm that the README's dependency table still matches `package.json` and
-   that optional Litterbox/Palera behavior is accurately described.
+   that optional Litterbox/Palera/Sylva Worker behavior is accurately described,
+   including the 100 MB proxy limit and direct-upload fallback.
 
 ## Repository presentation
 
