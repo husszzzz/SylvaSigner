@@ -19,7 +19,7 @@ through Palera. Small uploads are relayed through the Sylva Cloudflare Worker fo
 progress; larger uploads keep the direct browser-to-Litterbox path. This action is
 separate from local signing and requires explicit user confirmation.
 
-Made by [AntonP29](https://github.com/AntonP29). Project status: [![Current Date](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Ftimeapi.io%2Fapi%2Fv1%2Ftime%2Fcurrent%2Fzone%3FtimeZone%3DUTC&query=%24.date&label=&color=blue)](https://timeapi.io).
+Made by [AntonP29](https://github.com/AntonP29). Project status: `Active` — Last updated: `June 2026`.
 
 ## Features
 
