@@ -86,11 +86,38 @@ type CachedCertInfo = {
   savedAt: number
 }
 
+type GithubReleaseAsset = {
+  name: string
+  browser_download_url: string
+}
+
+type GithubRelease = {
+  name: string | null
+  tag_name: string
+  body: string | null
+  html_url: string
+  draft: boolean
+  prerelease: boolean
+  published_at: string | null
+  assets: GithubReleaseAsset[]
+}
+
+type SylvaIosRelease = {
+  name: string
+  version: string
+  releaseUrl: string
+  ipaUrl: string
+}
+
 let logCounter = 0
 
 const certCacheDbName = 'zsign-wasm-cert-cache'
 const certCacheStore = 'cert-info'
 const certCacheKey = 'default'
+const sylvaIosRepoUrl = 'https://github.com/AntonP29/Sylva-iOS-Releases'
+const sylvaIosReleasesUrl = `${sylvaIosRepoUrl}/releases`
+const sylvaIosFallbackIpaUrl =
+  'https://github.com/AntonP29/Sylva-iOS-Releases/releases/latest'
 
 function routeFromHash(): Route {
   if (window.location.hash === '#privacy') return 'privacy'
@@ -123,6 +150,111 @@ function GithubIcon({ size = 16 }: { size?: number }) {
       <path d="M12 .5a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.04c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.74.08-.74 1.21.09 1.85 1.25 1.85 1.25 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.66-.3-5.46-1.33-5.46-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.4 11.4 0 0 1 6.01 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.8 5.62-5.47 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.82.58A12 12 0 0 0 12 .5Z" />
     </svg>
   )
+}
+
+function releaseApiUrlFromReleasesUrl(releasesUrl: string) {
+  const url = new URL(releasesUrl)
+  const parts = url.pathname.split('/').filter(Boolean)
+  if (url.hostname !== 'github.com' || parts.length < 3 || parts[2] !== 'releases') {
+    throw new Error('Expected a GitHub releases URL.')
+  }
+  return `https://api.github.com/repos/${parts[0]}/${parts[1]}/releases`
+}
+
+function parseSylvaVersion(value: string) {
+  const match = value.match(/(?:sylva\s*)?v?(\d+(?:\.\d+)*)(?:\s*\((\d+)\))?/i)
+  if (!match) return null
+
+  const versionParts = match[1].split('.').map((part) => Number.parseInt(part, 10) || 0)
+  const build = match[2] ? Number.parseInt(match[2], 10) || 0 : 0
+  return { label: `${match[1]}${match[2] ? ` (${match[2]})` : ''}`, rank: [...versionParts, build] }
+}
+
+function compareVersionRank(left: number[], right: number[]) {
+  const length = Math.max(left.length, right.length)
+  for (let i = 0; i < length; i += 1) {
+    const diff = (left[i] ?? 0) - (right[i] ?? 0)
+    if (diff !== 0) return diff
+  }
+  return 0
+}
+
+function latestSylvaIosReleaseFrom(releases: GithubRelease[]): SylvaIosRelease | null {
+  const candidates = releases
+    .filter((release) => !release.draft)
+    .map((release) => {
+      const ipa = release.assets.find((asset) => /\.ipa$/i.test(asset.name))
+      if (!ipa) return null
+
+      const version =
+        parseSylvaVersion(`${release.name ?? ''} ${release.tag_name}`) ??
+        parseSylvaVersion(release.body ?? '')
+
+      return {
+        release,
+        ipa,
+        version,
+      }
+    })
+    .filter(
+      (
+        candidate,
+      ): candidate is {
+        release: GithubRelease
+        ipa: GithubReleaseAsset
+        version: { label: string; rank: number[] } | null
+      } => candidate !== null,
+    )
+
+  candidates.sort((left, right) => {
+    if (left.version && right.version) {
+      const versionDiff = compareVersionRank(right.version.rank, left.version.rank)
+      if (versionDiff !== 0) return versionDiff
+    }
+    if (left.version && !right.version) return -1
+    if (!left.version && right.version) return 1
+    return Date.parse(right.release.published_at ?? '') - Date.parse(left.release.published_at ?? '')
+  })
+
+  const latest = candidates[0]
+  if (!latest) return null
+
+  return {
+    name: latest.release.name || latest.release.tag_name,
+    version: latest.version?.label ?? latest.release.tag_name,
+    releaseUrl: latest.release.html_url,
+    ipaUrl: latest.ipa.browser_download_url,
+  }
+}
+
+function useLatestSylvaIosRelease() {
+  const [release, setRelease] = React.useState<SylvaIosRelease | null>(null)
+
+  React.useEffect(() => {
+    const controller = new AbortController()
+
+    void (async () => {
+      try {
+        const response = await fetch(releaseApiUrlFromReleasesUrl(sylvaIosReleasesUrl), {
+          headers: { Accept: 'application/vnd.github+json' },
+          signal: controller.signal,
+        })
+        if (!response.ok) throw new Error(`GitHub releases failed with HTTP ${response.status}.`)
+        const releases = (await response.json()) as GithubRelease[]
+        if (!controller.signal.aborted) {
+          setRelease(latestSylvaIosReleaseFrom(releases))
+        }
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) {
+          setRelease(null)
+        }
+      }
+    })()
+
+    return () => controller.abort()
+  }, [])
+
+  return release
 }
 
 function openCertCacheDb() {
@@ -622,6 +754,8 @@ function WelcomeDialog({ onClose }: { onClose: () => void }) {
 }
 
 function LegalFooter() {
+  const sylvaIosRelease = useLatestSylvaIosRelease()
+
   return (
     <footer className="mt-12 border-t border-border pt-6 text-center text-xs text-muted-foreground">
       <div className="mx-auto flex max-w-3xl flex-col items-center gap-4">
@@ -658,6 +792,48 @@ function LegalFooter() {
               Litterbox
             </a>
           </span>
+        </div>
+
+        <div className="w-full max-w-md rounded-2xl border border-border bg-card/60 px-4 py-3 text-center">
+          <p className="text-sm font-medium text-foreground">Try Sylva iOS</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            Fully on-device native Swift app for importing, signing, organizing, and installing IPAs.
+          </p>
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+            <a
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 font-medium text-foreground transition-colors hover:border-sky-400/50 hover:text-sky-300"
+              href={sylvaIosRepoUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <GithubIcon size={14} />
+              GitHub
+            </a>
+            <a
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 font-medium text-foreground transition-colors hover:border-emerald-400/50 hover:text-emerald-300"
+              href={sylvaIosRelease?.ipaUrl ?? sylvaIosFallbackIpaUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <Download size={14} />
+              Latest IPA
+              {sylvaIosRelease ? (
+                <span className="text-muted-foreground">v{sylvaIosRelease.version}</span>
+              ) : (
+                <span className="text-muted-foreground">auto</span>
+              )}
+            </a>
+            {sylvaIosRelease && (
+              <a
+                className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:underline"
+                href={sylvaIosRelease.releaseUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Release notes
+              </a>
+            )}
+          </div>
         </div>
 
         <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
