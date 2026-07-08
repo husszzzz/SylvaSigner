@@ -8,6 +8,8 @@
   A privacy-focused proof of concept for signing IPA files locally in a browser.
 </p>
 
+Production site: [sylva.antonp29.dev](https://sylva.antonp29.dev)
+
 Sylva Signer runs a WebAssembly port of
 [`zhlynn/zsign`](https://github.com/zhlynn/zsign) inside a dedicated Web Worker.
 Signing does not require an upload or signing server: the IPA, certificate, provisioning
@@ -19,7 +21,7 @@ through Palera. Small uploads are relayed through the Sylva Cloudflare Worker fo
 progress; larger uploads keep the direct browser-to-Litterbox path. This action is
 separate from local signing and requires explicit user confirmation.
 
-Made by [AntonP29](https://github.com/AntonP29). Project status: `June 26th, 2026`.
+Made by [AntonP29](https://github.com/AntonP29). Project status: `July 8, 2026`.
 
 ## Features
 
@@ -360,7 +362,7 @@ round trip. Normal page load is checked for unexpected external requests.
   committed.
 - Only synthetic fixtures should be placed in `tests/fixtures/`.
 - Browser storage persists until cleared by the app, browser settings, or profile reset.
-- A private source repository does not make hosted client assets secret. Visitors can
+- Public or private source control does not make hosted client assets secret. Visitors can
   download the JavaScript and zsign WASM runtimes required by their browser.
 - Minification or WASM obfuscation cannot prevent a visitor from saving client assets.
 - Use only certificates, profiles, dylibs, and applications you are authorized to use.
@@ -393,12 +395,12 @@ Third-party components are **not relicensed** as Sylva code. Their original term
 in force. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), `licenses/`,
 `vendor/zsign/LICENSE`, and `public/fonts/inter/OFL.txt`.
 
-The publication and secret-review steps are documented in
+Production maintenance checks are documented in
 [`docs/PUBLIC_RELEASE.md`](docs/PUBLIC_RELEASE.md).
 
-This licensing inventory is a practical compliance record, not legal advice. Before a
-public release, confirm that the Sylva logo files are artwork you created or have the
-right to distribute, and review the current terms of optional external services.
+This licensing inventory is a practical compliance record, not legal advice. The Sylva
+logo files are project artwork, and optional external services remain subject to their
+own current terms.
 
 ## Direct Dependencies
 
@@ -416,6 +418,8 @@ Clause terms; the exact license and component notice are preserved at
 | --- | --- | --- |
 | `@base-ui/react` | Accessible UI primitives | MIT |
 | `@plist/binary.parse` | Binary Apple plist parsing | BSD-3-Clause-Clear |
+| `@vercel/analytics` | Production web analytics | MIT |
+| `@vercel/speed-insights` | Production web performance metrics | Apache-2.0 |
 | `@zip.js/zip.js` | Browser ZIP entry reading and extraction | BSD-3-Clause |
 | `class-variance-authority` | Component variant composition | Apache-2.0 |
 | `clsx` | Conditional class names | MIT |

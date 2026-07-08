@@ -1,15 +1,16 @@
-# Public Release Checklist
+# Production Release Checklist
 
-Last reviewed: June 21, 2026.
+Last reviewed: July 8, 2026.
 
-Sylva Signer can be published as a public source repository under the root MIT
-License, with third-party components remaining under the licenses documented in
-`THIRD_PARTY_NOTICES.md`.
+Sylva Signer is published as a public source repository under the root MIT License,
+with third-party components remaining under the licenses documented in
+`THIRD_PARTY_NOTICES.md`. The production site is
+`https://sylva.antonp29.dev`.
 
-## Before changing repository visibility
+## Before Production Updates
 
-1. Confirm that `public/icon-light.png` and `public/icon-dark.png` are original
-   project artwork or assets you have permission to redistribute under MIT.
+1. Confirm that `public/icon-light.png` and `public/icon-dark.png` remain project
+   artwork or assets you have permission to redistribute under MIT.
 2. Run the verification commands:
 
    ```powershell
@@ -39,17 +40,16 @@ License, with third-party components remaining under the licenses documented in
    that optional Litterbox/Palera/Sylva Worker behavior is accurately described,
    including the 100 MB proxy limit and direct-upload fallback.
 
-## Repository presentation
+## Repository Presentation
 
 - Suggested description: `Fully local IPA signing in the browser using a WebAssembly
   port of zsign.`
 - Suggested topics: `webassembly`, `emscripten`, `ios`, `ipa`, `codesigning`,
   `react`, `typescript`, `privacy`.
-- Link the deployed static demonstration only from a domain you control and
-  trust. A hosted browser application necessarily exposes its JavaScript and
-  WASM assets to visitors.
+- Link the deployed static site only from domains you control and trust. A hosted
+  browser application necessarily exposes its JavaScript and WASM assets to visitors.
 
-## Scope of the MIT license
+## Scope Of The MIT License
 
 MIT covers Sylva Signer's original code and project-owned branding. It does not
 replace the licenses of zsign, OpenSSL, zlib/minizip, Inter, npm packages, or

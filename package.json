@@ -5,9 +5,13 @@
   "private": true,
   "license": "MIT",
   "author": "AntonP29",
+  "homepage": "https://sylva.antonp29.dev",
   "repository": {
     "type": "git",
     "url": "https://github.com/AntonP29/SylvaSigner.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AntonP29/SylvaSigner/issues"
   },
   "type": "module",
   "scripts": {
