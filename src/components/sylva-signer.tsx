@@ -534,7 +534,7 @@ function PreviousIpasDialog({
         <div className="min-h-0 overflow-y-auto p-5">
           {entries.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
-              لا يوجد تطبيقات موقعة حتى الآن.
+              لا يوجد تطبيقات موقعة. حتى الآن.
             </div>
           ) : (
             <div className="space-y-3">
