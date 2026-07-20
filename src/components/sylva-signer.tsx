@@ -799,7 +799,7 @@ function LegalFooter() {
           </a>
           <a
             className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
-            href="#"
+            href="https://github.com/husszzzz"
             target="_blank"
             rel="noreferrer"
           >
@@ -833,7 +833,7 @@ function InfoPage({ route }: { route: Exclude<Route, 'app'> }) {
 
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-3xl flex-col px-5 py-8 md:px-8 md:py-12">
-      <header className="flex items-center justify-between gap-4">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <a href="#" className="flex items-center gap-3.5">
           <div className="relative size-12 shrink-0 overflow-hidden rounded-2xl shadow-sm md:size-14">
             <img
@@ -848,11 +848,11 @@ function InfoPage({ route }: { route: Exclude<Route, 'app'> }) {
               className="hidden size-full scale-[1.18] object-cover dark:block"
             />
           </div>
-          <div>
-            <h1 className="text-balance text-xl font-semibold tracking-tight md:text-2xl">
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold tracking-tight md:text-2xl">
               Hassany Store
             </h1>
-            <p className="text-sm text-muted-foreground">توقيع التطبيقات محلياً</p>
+            <p className="mt-1 text-xs sm:text-sm text-muted-foreground truncate">توقيع التطبيقات محلياً</p>
           </div>
         </a>
         <ThemeToggle />
@@ -929,7 +929,7 @@ function InfoPage({ route }: { route: Exclude<Route, 'app'> }) {
         </div>
 
         <a
-          href="#"
+          href="https://github.com/husszzzz"
           target="_blank"
           rel="noreferrer"
           className="mt-7 inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted hover:text-foreground"
@@ -1764,7 +1764,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
 
   return (
     <main className={`mx-auto flex min-h-svh w-full max-w-6xl flex-col px-5 py-8 md:px-8 md:py-12 ${mobileMode && state === 'signing' ? 'mobile-signing' : ''}`}>
-      <header className="flex items-center justify-between gap-4">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <div className="relative size-12 shrink-0 overflow-hidden rounded-2xl shadow-sm md:size-14">
             <img
@@ -1779,16 +1779,16 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
               className="hidden size-full scale-[1.18] object-cover dark:block"
             />
           </div>
-          <div>
-            <h1 className="text-balance text-xl font-semibold tracking-tight md:text-2xl">
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold tracking-tight md:text-2xl">
               Hassany Store
             </h1>
-            <p className="text-sm text-muted-foreground">
-              توقيع تطبيقات الـ iOS محلياً وبكل سهولة من متصفحك
+            <p className="mt-1 text-xs sm:text-sm text-muted-foreground truncate">
+              توقيع تطبيقات الـ iOS محلياً بكل سهولة
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-end sm:self-auto">
           <AnimateIcon animateOnHover asChild>
             <Button
               type="button"
@@ -1802,11 +1802,11 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
               className="size-9 gap-2 px-0 sm:w-auto sm:px-2.5"
             >
               <ClipboardList size={16} />
-              <span className="hidden sm:inline">التطبيقات السابقة</span>
+              <span className="hidden sm:inline">السجل</span>
             </Button>
           </AnimateIcon>
           <a
-            href="#"
+            href="https://github.com/husszzzz"
             target="_blank"
             rel="noreferrer"
             aria-label="Open Hassany Store on GitHub"
@@ -1845,13 +1845,13 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
                   className="text-muted-foreground transition-colors hover:text-blue-500"
                 />
               </AnimateIcon>
-              <h2 className="text-sm font-semibold tracking-tight">ملفات التوقيع</h2>
+              <h2 className="text-sm font-semibold tracking-tight">ملفات التوقيع الأساسية</h2>
             </div>
 
             <FileDrop
               id="ipa"
               label="ملف التطبيق (IPA)"
-              hint="اختر ملف IPA"
+              hint="اختر ملف IPA أو اسحبه هنا"
               accept=".ipa,.zip"
               icon={Layers}
               hoverColor="group-hover:text-blue-500"
@@ -1860,7 +1860,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
             />
             <div className="rounded-xl border border-border bg-muted/20 p-3">
               <Label htmlFor="ipa-url" className="text-xs font-medium text-foreground">
-                رابط التطبيق مباشر (IPA URL)
+                أو استخدم رابط تطبيق مباشر (IPA URL)
               </Label>
               <div className="mt-2 flex flex-col gap-2 sm:flex-row">
                 <Input
@@ -1908,6 +1908,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
                 </p>
               )}
             </div>
+            
             <FileDrop
               id="p12"
               label="ملف مفتاح الشهادة (.p12)"
@@ -1929,34 +1930,9 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
               files={profiles}
               onFiles={setProfiles}
             />
-            <FileDrop
-              id="dylibs"
-              label="ملفات إضافية Dylibs (اختياري)"
-              hint="اختر مكتبات dylib إذا أردت حقنها بالتطبيق"
-              accept=".dylib"
-              multiple
-              icon={Blocks}
-              hoverColor="group-hover:text-rose-500"
-              files={dylibs}
-              onFiles={setDylibs}
-            />
-          </section>
-
-          <section className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5">
-            <div className="flex items-center gap-2">
-              <AnimateIcon animateOnHover>
-                <Key
-                  size={18}
-                  className="text-muted-foreground transition-colors hover:text-violet-500"
-                />
-              </AnimateIcon>
-              <h2 className="text-sm font-semibold tracking-tight">
-                باسورد الشهادة والإعدادات
-              </h2>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="cert-password">باسورد ملف P12</Label>
+            
+            <div className="flex flex-col gap-2 pt-2">
+              <Label htmlFor="cert-password">باسورد الشهادة (P12)</Label>
               <Input
                 id="cert-password"
                 type="password"
@@ -1966,122 +1942,153 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
                 autoComplete="off"
               />
             </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="output-name">اسم التطبيق (اختياري)</Label>
-                <Input
-                  id="output-name"
-                  placeholder="مثال: my-app-signed.ipa"
-                  value={outputName}
-                  onChange={(e) => {
-                    setOutputNameTouched(true)
-                    setOutputName(e.target.value)
-                  }}
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="bundle-id" className="flex items-center gap-1.5">
-                  <Fingerprint size={14} className="text-muted-foreground" />
-                  معرف الحزمة (Bundle ID)
-                </Label>
-                <Input
-                  id="bundle-id"
-                  placeholder="سيتم اكتشافه تلقائياً من التطبيق"
-                  value={bundleId}
-                  onChange={(e) => setBundleId(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-muted/30 px-4 py-3">
-              <AnimateIcon animateOnHover asChild>
-                <label
-                  htmlFor="cache-cert"
-                  className="group flex flex-1 cursor-pointer items-center gap-3"
-                >
-                  <Fingerprint
-                    size={20}
-                    className="text-muted-foreground transition-colors group-hover:text-cyan-500"
-                  />
-                  <div>
-                    <p className="text-sm font-medium">حفظ الشهادة محلياً</p>
-                    <p className="text-xs text-muted-foreground">
-                      تذكر ملفات الشهادة والباسورد داخل هذا المتصفح للمرات القادمة
-                    </p>
-                  </div>
-                </label>
-              </AnimateIcon>
-              <Switch
-                id="cache-cert"
-                checked={cacheCert}
-                onCheckedChange={setCacheCert}
-              />
-            </div>
-
-            {hasCache && (
-              <AnimateIcon animateOnHover asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={handleClearCache}
-                  className="w-fit gap-2 text-muted-foreground hover:text-destructive"
-                >
-                  <Trash2 size={16} />
-                  حذف الشهادة المحفوظة مؤقتاً
-                </Button>
-              </AnimateIcon>
-            )}
           </section>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <AnimateIcon
-              animate={state === 'signing' && !mobileMode}
-              animateOnHover
-              loop={state === 'signing' && !mobileMode}
-              asChild
-            >
-              <Button
-                id="sign-button"
-                size="lg"
-                onClick={handleSign}
-                disabled={!canSign}
-                className="h-11 gap-2 px-5"
-              >
-                {state === 'signing' ? (
-                  <LoaderCircle size={18} animate={!mobileMode} loop={!mobileMode} />
-                ) : (
-                  <Send size={18} />
+          {/* هذا الجزء راح يختفي وما يظهر إلا إذا رفع تطبيق IPA */}
+          {ipa[0] && (
+            <>
+              <section className="flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 transition-all animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="flex items-center gap-2">
+                  <AnimateIcon animateOnHover>
+                    <Key
+                      size={18}
+                      className="text-muted-foreground transition-colors hover:text-violet-500"
+                    />
+                  </AnimateIcon>
+                  <h2 className="text-sm font-semibold tracking-tight">
+                    إعدادات إضافية وحقن الملفات (اختياري)
+                  </h2>
+                </div>
+
+                <FileDrop
+                  id="dylibs"
+                  label="حقن ملفات (Dylibs)"
+                  hint="اختر مكتبات dylib إذا أردت دمجها مع التطبيق"
+                  accept=".dylib"
+                  multiple
+                  icon={Blocks}
+                  hoverColor="group-hover:text-rose-500"
+                  files={dylibs}
+                  onFiles={setDylibs}
+                />
+
+                <div className="grid gap-4 sm:grid-cols-2 mt-2">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="output-name">تغيير اسم التطبيق</Label>
+                    <Input
+                      id="output-name"
+                      placeholder="مثال: my-app-signed.ipa"
+                      value={outputName}
+                      onChange={(e) => {
+                        setOutputNameTouched(true)
+                        setOutputName(e.target.value)
+                      }}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="bundle-id" className="flex items-center gap-1.5">
+                      <Fingerprint size={14} className="text-muted-foreground" />
+                      معرف الحزمة (Bundle ID)
+                    </Label>
+                    <Input
+                      id="bundle-id"
+                      placeholder="سيتم اكتشافه تلقائياً"
+                      value={bundleId}
+                      onChange={(e) => setBundleId(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-muted/30 px-4 py-3 mt-2">
+                  <AnimateIcon animateOnHover asChild>
+                    <label
+                      htmlFor="cache-cert"
+                      className="group flex flex-1 cursor-pointer items-center gap-3"
+                    >
+                      <Fingerprint
+                        size={20}
+                        className="text-muted-foreground transition-colors group-hover:text-cyan-500"
+                      />
+                      <div>
+                        <p className="text-sm font-medium">حفظ الشهادة محلياً</p>
+                        <p className="text-xs text-muted-foreground">
+                          تذكر ملفات الشهادة والباسورد داخل هذا المتصفح للمرات القادمة
+                        </p>
+                      </div>
+                    </label>
+                  </AnimateIcon>
+                  <Switch
+                    id="cache-cert"
+                    checked={cacheCert}
+                    onCheckedChange={setCacheCert}
+                  />
+                </div>
+
+                {hasCache && (
+                  <AnimateIcon animateOnHover asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={handleClearCache}
+                      className="w-fit gap-2 text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 size={16} />
+                      حذف الشهادة المحفوظة مؤقتاً
+                    </Button>
+                  </AnimateIcon>
                 )}
-                {state === 'signing' ? 'جاري التوقيع...' : 'توقيع التطبيق'}
-              </Button>
-            </AnimateIcon>
+              </section>
 
-            <AnimateIcon animateOnHover asChild>
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={handleDownload}
-                disabled={outputs.length === 0}
-                className="h-11 gap-2 px-5"
-              >
-                <Download size={18} />
-                تحميل التطبيق
-              </Button>
-            </AnimateIcon>
+              <div className="flex flex-wrap items-center gap-3 animate-in fade-in duration-500">
+                <AnimateIcon
+                  animate={state === 'signing' && !mobileMode}
+                  animateOnHover
+                  loop={state === 'signing' && !mobileMode}
+                  asChild
+                >
+                  <Button
+                    id="sign-button"
+                    size="lg"
+                    onClick={handleSign}
+                    disabled={!canSign}
+                    className="h-11 gap-2 px-5"
+                  >
+                    {state === 'signing' ? (
+                      <LoaderCircle size={18} animate={!mobileMode} loop={!mobileMode} />
+                    ) : (
+                      <Send size={18} />
+                    )}
+                    {state === 'signing' ? 'جاري التوقيع...' : 'توقيع التطبيق'}
+                  </Button>
+                </AnimateIcon>
 
-            <AnimateIcon animateOnHover asChild>
-              <Button
-                size="lg"
-                variant="ghost"
-                onClick={handleClear}
-                className="h-11 gap-2 px-5 text-muted-foreground hover:text-destructive"
-              >
-                <Trash2 size={18} />
-                تفريغ الحقول
-              </Button>
-            </AnimateIcon>
-          </div>
+                <AnimateIcon animateOnHover asChild>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    onClick={handleDownload}
+                    disabled={outputs.length === 0}
+                    className="h-11 gap-2 px-5"
+                  >
+                    <Download size={18} />
+                    تحميل التطبيق
+                  </Button>
+                </AnimateIcon>
+
+                <AnimateIcon animateOnHover asChild>
+                  <Button
+                    size="lg"
+                    variant="ghost"
+                    onClick={handleClear}
+                    className="h-11 gap-2 px-5 text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 size={18} />
+                    تفريغ الحقول
+                  </Button>
+                </AnimateIcon>
+              </div>
+            </>
+          )}
 
           {(state === 'signing' || state === 'done' || state === 'error') && (
             <ProgressBar progress={signProgress} />
