@@ -347,9 +347,9 @@ function readableDownloadError(error: unknown) {
 async function proxyErrorMessage(response: Response) {
   try {
     const body = await response.json() as { message?: string }
-    return body.message || `Sylva proxy failed with HTTP ${response.status}.`
+    return body.message || `Proxy failed with HTTP ${response.status}.`
   } catch {
-    return `Sylva proxy failed with HTTP ${response.status}.`
+    return `Proxy failed with HTTP ${response.status}.`
   }
 }
 
@@ -519,22 +519,22 @@ function PreviousIpasDialog({
             </AnimateIcon>
             <div>
               <h2 id="previous-ipas-title" className="text-lg font-semibold">
-                Previous IPAs
+                التطبيقات السابقة
               </h2>
               <p className="text-sm text-muted-foreground">
-                Local history of signed names and temporary install links.
+                سجل محلي للتطبيقات التي قمت بتوقيعها وروابط التثبيت المؤقتة.
               </p>
             </div>
           </div>
           <Button type="button" variant="ghost" onClick={onClose}>
-            Close
+            إغلاق
           </Button>
         </div>
 
         <div className="min-h-0 overflow-y-auto p-5">
           {entries.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
-              No signed IPA history yet.
+              لا يوجد تطبيقات موقعة حتى الآن.
             </div>
           ) : (
             <div className="space-y-3">
@@ -562,17 +562,17 @@ function PreviousIpasDialog({
                           </p>
                           <p className="truncate text-xs text-muted-foreground">{entry.name}</p>
                           <p className="mt-1 text-xs text-muted-foreground">
-                            Signed {formatHistoryDate(entry.signedAt)}
+                            تم التوقيع {formatHistoryDate(entry.signedAt)}
                           </p>
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
                         {!hasLinks ? (
-                          <StatusTag tone="local">Fully Local</StatusTag>
+                          <StatusTag tone="local">تخزين محلي</StatusTag>
                         ) : (
                           <>
                             <StatusTag tone={expired ? 'expired' : 'active'}>
-                              {expired ? 'Expired' : 'Active'}
+                              {expired ? 'منتهي الصلاحية' : 'نشط'}
                             </StatusTag>
                             <StatusTag tone="local">
                               Litterbox {entry.uploadExpiry}
@@ -612,8 +612,8 @@ function PreviousIpasDialog({
                           >
                             <Copy size={14} />
                             {copiedId === `${entry.id}-ipa`
-                              ? 'Copied URL'
-                              : 'Copy Download URL'}
+                              ? 'تم النسخ'
+                              : 'نسخ رابط التحميل'}
                           </Button>
                         </AnimateIcon>
                         {directInstall && !expired ? (
@@ -622,7 +622,7 @@ function PreviousIpasDialog({
                             className="inline-flex h-8 items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                           >
                             <Send size={14} />
-                            Install on iPhone
+                            تثبيت على الآيفون
                           </a>
                         ) : !directInstall ? (
                           <AnimateIcon animateOnHover asChild>
@@ -637,8 +637,8 @@ function PreviousIpasDialog({
                             >
                               <Copy size={14} />
                               {copiedId === `${entry.id}-install`
-                                ? 'Copied Link'
-                                : 'Copy iPhone Install Link'}
+                                ? 'تم النسخ'
+                                : 'نسخ رابط التثبيت'}
                             </Button>
                           </AnimateIcon>
                         ) : null}
@@ -662,7 +662,7 @@ function PreviousIpasDialog({
                 className="gap-2 text-muted-foreground hover:text-destructive"
               >
                 <Trash2 size={16} />
-                Clear History
+                مسح السجل
               </Button>
             </AnimateIcon>
           </div>
@@ -674,7 +674,7 @@ function PreviousIpasDialog({
 
 function WelcomeMark() {
   return (
-    <div className="welcome-mark relative mx-auto size-24 md:size-28" aria-label="Sylva Signer">
+    <div className="welcome-mark relative mx-auto size-24 md:size-28" aria-label="Hassany Store">
       <img
         src="/icon-light.png"
         alt=""
@@ -719,33 +719,29 @@ function WelcomeDialog({ onClose }: { onClose: () => void }) {
         <div className="space-y-4 px-6 pb-6 text-center">
           <div>
             <h2 id="welcome-title" className="text-2xl font-semibold tracking-tight">
-              Hey there 👋
+              أهلاً بك في متجر حساني 👋
             </h2>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              Sylva Signer is a browser-based proof of concept for local IPA signing.
-              Large files can take time because extraction, signing, and archiving happen
-              on this device and may require several times the IPA size in available
-              memory. Direct iPhone installation requires an
-              HTTPS-hosted IPA, so the built-in installation flow uploads only the signed IPA to a
-              temporary provider after your explicit agreement.
+              Hassany Store هو متجر توقيع محلي مبني للعمل من خلال المتصفح. 
+              يتم معالجة وضغط وتوقيع التطبيقات مباشرة في جهازك. لتثبيت التطبيق مباشرة على جهاز الآيفون الخاص بك، سيتم رفع التطبيق الموقع لمرة واحدة فقط لتمكين رابط التثبيت من العمل.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground">
             <a
-              href="https://github.com/AntonP29"
+              href="#"
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
             >
               <GithubIcon size={14} />
-              AntonP29
+              Hussein Al-Hasani
             </a>
             <span>{getFormattedDate()}</span>
           </div>
 
           <Button type="button" onClick={onClose} className="w-full">
-            Continue
+            استمرار
           </Button>
         </div>
       </div>
@@ -760,7 +756,7 @@ function LegalFooter() {
     <footer className="mt-12 border-t border-border pt-6 text-center text-xs text-muted-foreground">
       <div className="mx-auto flex max-w-3xl flex-col items-center gap-4">
         <p className="italic leading-5">
-          Sylva Signer runs zsign as WebAssembly inside a dedicated browser worker. Your IPA,
+          Hassany Store runs zsign as WebAssembly inside a dedicated browser worker. Your IPA,
           certificate, provisioning profile, password, and signed output remain on this device
           during signing; temporary installation uploads only the signed IPA after confirmation.
         </p>
@@ -794,71 +790,21 @@ function LegalFooter() {
           </span>
         </div>
 
-        <div className="w-full max-w-md rounded-2xl border border-border bg-card/60 px-4 py-3 text-center">
-          <p className="text-sm font-medium text-foreground">Try Sylva iOS</p>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Fully on-device native Swift app for importing, signing, organizing, and installing IPAs.
-          </p>
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-            <a
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 font-medium text-foreground transition-colors hover:border-sky-400/50 hover:text-sky-300"
-              href={sylvaIosRepoUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <GithubIcon size={14} />
-              GitHub
-            </a>
-            <a
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 font-medium text-foreground transition-colors hover:border-emerald-400/50 hover:text-emerald-300"
-              href={sylvaIosRelease?.ipaUrl ?? sylvaIosFallbackIpaUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Download size={14} />
-              Latest IPA
-              {sylvaIosRelease ? (
-                <span className="text-muted-foreground">v{sylvaIosRelease.version}</span>
-              ) : (
-                <span className="text-muted-foreground">auto</span>
-              )}
-            </a>
-            {sylvaIosRelease && (
-              <a
-                className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:underline"
-                href={sylvaIosRelease.releaseUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Release notes
-              </a>
-            )}
-          </div>
-        </div>
-
         <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
           <a className="transition-colors hover:text-red-500" href="#privacy">
-            Privacy Policy
+            سياسة الخصوصية
           </a>
           <a className="transition-colors hover:text-blue-500" href="#legal">
-            Legal
-          </a>
-          <a
-            className="transition-colors hover:text-emerald-500"
-            href="https://github.com/AntonP29/SylvaSigner/blob/master/LICENSE"
-            target="_blank"
-            rel="noreferrer"
-          >
-            MIT License
+            الشروط
           </a>
           <a
             className="inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
-            href="https://github.com/AntonP29"
+            href="#"
             target="_blank"
             rel="noreferrer"
           >
             <GithubIcon size={14} />
-            AntonP29
+            Hussein Al-Hasani
           </a>
         </nav>
       </div>
@@ -892,7 +838,7 @@ function InfoPage({ route }: { route: Exclude<Route, 'app'> }) {
           <div className="relative size-12 shrink-0 overflow-hidden rounded-2xl shadow-sm md:size-14">
             <img
               src="/icon-light.png"
-              alt="Sylva Signer logo"
+              alt="Hassany Store logo"
               className="size-full scale-[1.18] object-cover dark:hidden"
             />
             <img
@@ -904,9 +850,9 @@ function InfoPage({ route }: { route: Exclude<Route, 'app'> }) {
           </div>
           <div>
             <h1 className="text-balance text-xl font-semibold tracking-tight md:text-2xl">
-              Sylva Signer
+              Hassany Store
             </h1>
-            <p className="text-sm text-muted-foreground">Fully local IPA signing</p>
+            <p className="text-sm text-muted-foreground">توقيع التطبيقات محلياً</p>
           </div>
         </a>
         <ThemeToggle />
@@ -940,7 +886,7 @@ function InfoPage({ route }: { route: Exclude<Route, 'app'> }) {
           {isPrivacy ? (
             <>
               <p>
-                Sylva Signer is designed to sign IPA files locally in your browser. The app
+                Hassany Store is designed to sign IPA files locally in your browser. The app
                 does not require a signing server and does not intentionally upload your IPA,
                 P12/PFX certificate, provisioning profile, password, or dylibs. If you choose
                 temporary installation after signing, only the signed IPA is uploaded so iOS can
@@ -959,7 +905,7 @@ function InfoPage({ route }: { route: Exclude<Route, 'app'> }) {
           ) : (
             <>
               <p>
-                Sylva Signer is provided as a browser-based signing tool for lawful workflows
+                Hassany Store is provided as a browser-based signing tool for lawful workflows
                 using certificates, provisioning profiles, and app files you are authorized to
                 use.
               </p>
@@ -970,28 +916,26 @@ function InfoPage({ route }: { route: Exclude<Route, 'app'> }) {
                 app assets.
               </p>
               <p>
-                This project is made by AntonP29 and published for local, privacy-preserving
+                This project is configured by Hussein Al-Hasani and published for local, privacy-preserving
                 IPA signing research and utility.
               </p>
               <p>
-                Sylva Signer&apos;s original code is available under the MIT License. zsign,
+                Hassany Store&apos;s original code is available under the MIT License. zsign,
                 OpenSSL, Inter, JavaScript packages, and other third-party components remain
-                under their own licenses and notices documented in the repository. Sylva
-                Signer is independent and is not affiliated with or endorsed by Apple,
-                Litterbox, Catbox, Palera, or the upstream zsign maintainers.
+                under their own licenses and notices documented in the repository.
               </p>
             </>
           )}
         </div>
 
         <a
-          href="https://github.com/AntonP29"
+          href="#"
           target="_blank"
           rel="noreferrer"
           className="mt-7 inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted hover:text-foreground"
         >
           <GithubIcon size={16} />
-          Visit AntonP29 on GitHub
+          Visit Hussein Al-Hasani on GitHub
         </a>
       </section>
 
@@ -1262,7 +1206,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
   const [installDialogOpen, setInstallDialogOpen] = React.useState(false)
   const [signProgress, setSignProgress] = React.useState<ProgressState>({
     value: 0,
-    label: 'Waiting to sign',
+    label: 'في انتظار التوقيع',
   })
   const [consoleActivity, setConsoleActivity] = React.useState<ConsoleActivity | null>(null)
   const [historyEntries, setHistoryEntries] = React.useState<IpaHistoryEntry[]>([])
@@ -1383,7 +1327,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
             setCertificateMessage(
               certPassword
                 ? 'Certificate details unavailable. Check the password.'
-                : 'Enter the certificate password to view its details.',
+                : 'أدخل باسورد الشهادة لعرض تفاصيلها.',
             )
           }
         })
@@ -1553,7 +1497,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
     setIpaUrlDownloading(true)
     setIpaUrlError('')
     setIpaUrlProgress('Starting download...')
-    addLog('info', `Downloading IPA through Sylva proxy: ${url.href}`)
+    addLog('info', `Downloading IPA through Hassany proxy: ${url.href}`)
 
     try {
       const proxiedUrl = new URL('/ipa', sylvaProxyBaseUrl)
@@ -1613,7 +1557,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
       setOutputs([])
       setState('idle')
       setConsoleActivity(null)
-      setSignProgress({ value: 0, label: 'Waiting to sign' })
+      setSignProgress({ value: 0, label: 'في انتظار التوقيع' })
       setIpaUrlProgress(`Selected ${file.name} (${formatMetadataSize(file.size)})`)
       addLog('success', `Downloaded and selected IPA: ${file.name}`)
     } catch (error) {
@@ -1693,15 +1637,15 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
   }, [addLog])
 
   const buildSignOptions = React.useCallback((): SignIpaOptions => {
-    if (!ipa[0]) throw new Error('Choose an IPA before signing.')
+    if (!ipa[0]) throw new Error('اختر ملف التطبيق (IPA) قبل التوقيع.')
 
     const cachedP12 = cachedCertInfo?.p12 ? cachedDataToFile(cachedCertInfo.p12) : undefined
     const cachedProfiles = cachedCertInfo?.profiles.map(cachedDataToFile) ?? []
     const selectedP12 = p12[0] ?? (cacheCert ? cachedP12 : undefined)
     const selectedProfiles = profiles.length > 0 ? profiles : cacheCert ? cachedProfiles : []
 
-    if (!selectedP12) throw new Error('Choose a P12/PFX signing certificate.')
-    if (selectedProfiles.length === 0) throw new Error('Choose at least one provisioning profile.')
+    if (!selectedP12) throw new Error('اختر ملف مفتاح الشهادة (P12).')
+    if (selectedProfiles.length === 0) throw new Error('اختر ملف البروفايل (MobileProvision) واحد على الأقل.')
 
     return {
       ipa: ipa[0],
@@ -1733,7 +1677,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
     setInstallDialogOpen(false)
     setCurrentHistoryId('')
     setConsoleActivity(null)
-    setSignProgress({ value: 5, label: 'Starting local signing session' })
+    setSignProgress({ value: 5, label: 'جاري بدء التوقيع محلياً' })
 
     addLog('step', 'Initializing local WebAssembly signing session')
     addLog('info', `Loaded payload: ${ipa[0]?.name ?? 'pending'}`)
@@ -1777,7 +1721,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
       addLog(result.exitCode === 0 ? 'success' : 'error', `zsign exited with code ${result.exitCode}`)
       setSignProgress((current) => ({
         value: result.exitCode === 0 ? 100 : Math.max(current.value, 1),
-        label: result.exitCode === 0 ? 'Signing complete' : 'Signing stopped',
+        label: result.exitCode === 0 ? 'اكتمل التوقيع بنجاح' : 'توقف التوقيع',
       }))
       setState(result.exitCode === 0 ? 'done' : 'error')
       setConsoleActivity(null)
@@ -1785,7 +1729,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
       addLog('error', error instanceof Error ? error.message : String(error))
       setSignProgress((current) => ({
         value: Math.max(current.value, 1),
-        label: 'Signing failed',
+        label: 'فشل التوقيع',
       }))
       setState('error')
       setConsoleActivity(null)
@@ -1812,7 +1756,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
     installMetadataRef.current = {}
     setInstallDialogOpen(false)
     setCurrentHistoryId('')
-    setSignProgress({ value: 0, label: 'Waiting to sign' })
+    setSignProgress({ value: 0, label: 'في انتظار التوقيع' })
     setConsoleActivity(null)
     if (!cacheCert) setCertPassword('')
     setState('idle')
@@ -1825,7 +1769,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
           <div className="relative size-12 shrink-0 overflow-hidden rounded-2xl shadow-sm md:size-14">
             <img
               src="/icon-light.png"
-              alt="Sylva Signer logo"
+              alt="Hassany Store logo"
               className="size-full scale-[1.18] object-cover dark:hidden"
             />
             <img
@@ -1837,10 +1781,10 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
           </div>
           <div>
             <h1 className="text-balance text-xl font-semibold tracking-tight md:text-2xl">
-              Sylva Signer
+              Hassany Store
             </h1>
             <p className="text-sm text-muted-foreground">
-              Fully local IPA signing in your browser
+              توقيع تطبيقات الـ iOS محلياً وبكل سهولة من متصفحك
             </p>
           </div>
         </div>
@@ -1853,19 +1797,19 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
                 setHistoryEntries(readIpaHistory())
                 setHistoryDialogOpen(true)
               }}
-              aria-label="Previous IPAs"
-              title="Previous IPAs"
+              aria-label="التطبيقات السابقة"
+              title="التطبيقات السابقة"
               className="size-9 gap-2 px-0 sm:w-auto sm:px-2.5"
             >
               <ClipboardList size={16} />
-              <span className="hidden sm:inline">Previous IPAs</span>
+              <span className="hidden sm:inline">التطبيقات السابقة</span>
             </Button>
           </AnimateIcon>
           <a
-            href="https://github.com/AntonP29/SylvaSigner"
+            href="#"
             target="_blank"
             rel="noreferrer"
-            aria-label="Open Sylva Signer on GitHub"
+            aria-label="Open Hassany Store on GitHub"
             title="GitHub"
             className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-all hover:bg-muted hover:text-sky-400 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30 dark:hover:bg-input/50"
           >
@@ -1883,10 +1827,9 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
             <TriangleAlert size={19} className="mt-0.5 shrink-0" />
           </AnimateIcon>
           <div>
-            <p className="text-sm font-medium">Mobile compatibility mode</p>
+            <p className="text-sm font-medium">وضع التوافق للهواتف المحمولة</p>
             <p className="mt-1 text-xs leading-5 opacity-80">
-              Uses upstream zsign&apos;s slower native archive path to reduce browser memory
-              duplication. Keep this tab active until signing and download finish.
+              يستخدم معالجة المتصفح بأقل استهلاك للذاكرة. الرجاء إبقاء الصفحة مفتوحة حتى يكتمل التوقيع والتحميل.
             </p>
           </div>
         </div>
@@ -1902,13 +1845,13 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
                   className="text-muted-foreground transition-colors hover:text-blue-500"
                 />
               </AnimateIcon>
-              <h2 className="text-sm font-semibold tracking-tight">Inputs</h2>
+              <h2 className="text-sm font-semibold tracking-tight">ملفات التوقيع</h2>
             </div>
 
             <FileDrop
               id="ipa"
-              label="IPA file"
-              hint="Select or drop your .ipa"
+              label="ملف التطبيق (IPA)"
+              hint="اختر ملف IPA"
               accept=".ipa,.zip"
               icon={Layers}
               hoverColor="group-hover:text-blue-500"
@@ -1917,7 +1860,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
             />
             <div className="rounded-xl border border-border bg-muted/20 p-3">
               <Label htmlFor="ipa-url" className="text-xs font-medium text-foreground">
-                IPA URL
+                رابط التطبيق مباشر (IPA URL)
               </Label>
               <div className="mt-2 flex flex-col gap-2 sm:flex-row">
                 <Input
@@ -1951,7 +1894,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
                   ) : (
                     <Download size={16} />
                   )}
-                  {ipaUrlDownloading ? 'Cancel' : 'Import URL'}
+                  {ipaUrlDownloading ? 'إلغاء' : 'استيراد الرابط'}
                 </Button>
               </div>
               {(ipaUrlProgress || ipaUrlError) && (
@@ -1967,8 +1910,8 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
             </div>
             <FileDrop
               id="p12"
-              label="Signing certificate (.p12)"
-              hint="Select or drop your .p12"
+              label="ملف مفتاح الشهادة (.p12)"
+              hint="إدراج ملف P12"
               accept=".p12,.pfx"
               icon={BadgeCheck}
               hoverColor="group-hover:text-emerald-500"
@@ -1977,8 +1920,8 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
             />
             <FileDrop
               id="profiles"
-              label="Provisioning profile"
-              hint="Select or drop .mobileprovision"
+              label="ملف البروفايل (MobileProvision)"
+              hint="إدراج ملف MobileProvision الخاص بالشهادة"
               accept=".mobileprovision,.provisionprofile"
               multiple
               icon={LockKeyhole}
@@ -1988,8 +1931,8 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
             />
             <FileDrop
               id="dylibs"
-              label="Dylibs (optional)"
-              hint="Select or drop .dylib files to inject"
+              label="ملفات إضافية Dylibs (اختياري)"
+              hint="اختر مكتبات dylib إذا أردت حقنها بالتطبيق"
               accept=".dylib"
               multiple
               icon={Blocks}
@@ -2008,100 +1951,16 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
                 />
               </AnimateIcon>
               <h2 className="text-sm font-semibold tracking-tight">
-                Credentials &amp; Options
+                باسورد الشهادة والإعدادات
               </h2>
             </div>
 
-            <div className="rounded-xl border border-border bg-muted/25 p-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <AnimateIcon animateOnHover>
-                      <BadgeCheck
-                        size={18}
-                        className="text-muted-foreground transition-colors hover:text-emerald-500"
-                      />
-                    </AnimateIcon>
-                    <p className="text-sm font-medium">Public enterprise certificates</p>
-                  </div>
-                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                    Imports only NexCerts README entries currently marked signed. Public
-                    enterprise certificates are third-party assets and may be revoked.
-                  </p>
-                </div>
-                <AnimateIcon animate={publicCertsLoading} loop={publicCertsLoading} asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleLoadPublicCerts}
-                    disabled={publicCertsLoading || Boolean(publicCertImportingId)}
-                    className="gap-2 sm:self-start"
-                  >
-                    {publicCertsLoading ? <LoaderCircle size={16} /> : <Download size={16} />}
-                    {publicCerts.length ? 'Refresh signed list' : 'Load signed list'}
-                  </Button>
-                </AnimateIcon>
-              </div>
-
-              {publicCertMessage && (
-                <p className="mt-3 text-xs leading-5 text-muted-foreground">{publicCertMessage}</p>
-              )}
-
-              {publicCerts.length > 0 && (
-                <div className="mt-3 grid gap-2">
-                  {publicCerts.map((entry) => {
-                    const importing = publicCertImportingId === entry.id
-                    return (
-                      <div
-                        key={entry.id}
-                        className="flex flex-col gap-3 rounded-lg border border-border bg-background/70 p-3 sm:flex-row sm:items-center sm:justify-between"
-                      >
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="min-w-0 break-words text-sm font-medium">
-                              {entry.company}
-                            </p>
-                            <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[0.7rem] font-medium text-emerald-600 dark:text-emerald-300">
-                              Signed
-                            </span>
-                          </div>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            Valid {entry.validFrom} to {entry.validTo}
-                          </p>
-                          <a
-                            href={entry.sourceTreeUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="mt-1 inline-flex text-xs text-sky-400 hover:text-sky-300 hover:underline"
-                          >
-                            View source files
-                          </a>
-                        </div>
-                        <AnimateIcon animate={importing} loop={importing} asChild>
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={() => void handleImportPublicCert(entry)}
-                            disabled={Boolean(publicCertImportingId) || publicCertsLoading}
-                            className="gap-2 sm:self-center"
-                          >
-                            {importing ? <LoaderCircle size={16} /> : <Upload size={16} />}
-                            {importing ? 'Importing...' : 'Import'}
-                          </Button>
-                        </AnimateIcon>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-
             <div className="flex flex-col gap-2">
-              <Label htmlFor="cert-password">Certificate password</Label>
+              <Label htmlFor="cert-password">باسورد ملف P12</Label>
               <Input
                 id="cert-password"
                 type="password"
-                placeholder="Enter .p12 password"
+                placeholder="اتركه فارغاً إذا لم توجد كلمة مرور"
                 value={certPassword}
                 onChange={(e) => setCertPassword(e.target.value)}
                 autoComplete="off"
@@ -2110,10 +1969,10 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-2">
-                <Label htmlFor="output-name">Output IPA name</Label>
+                <Label htmlFor="output-name">اسم التطبيق (اختياري)</Label>
                 <Input
                   id="output-name"
-                  placeholder="e.g. my-app-signed.ipa"
+                  placeholder="مثال: my-app-signed.ipa"
                   value={outputName}
                   onChange={(e) => {
                     setOutputNameTouched(true)
@@ -2124,11 +1983,11 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
               <div className="flex flex-col gap-2">
                 <Label htmlFor="bundle-id" className="flex items-center gap-1.5">
                   <Fingerprint size={14} className="text-muted-foreground" />
-                  Bundle ID
+                  معرف الحزمة (Bundle ID)
                 </Label>
                 <Input
                   id="bundle-id"
-                  placeholder="Detected from IPA"
+                  placeholder="سيتم اكتشافه تلقائياً من التطبيق"
                   value={bundleId}
                   onChange={(e) => setBundleId(e.target.value)}
                 />
@@ -2146,9 +2005,9 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
                     className="text-muted-foreground transition-colors group-hover:text-cyan-500"
                   />
                   <div>
-                    <p className="text-sm font-medium">Cache certificate locally</p>
+                    <p className="text-sm font-medium">حفظ الشهادة محلياً</p>
                     <p className="text-xs text-muted-foreground">
-                      Remember signing assets in this browser
+                      تذكر ملفات الشهادة والباسورد داخل هذا المتصفح للمرات القادمة
                     </p>
                   </div>
                 </label>
@@ -2169,7 +2028,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
                   className="w-fit gap-2 text-muted-foreground hover:text-destructive"
                 >
                   <Trash2 size={16} />
-                  Forget cached certificate
+                  حذف الشهادة المحفوظة مؤقتاً
                 </Button>
               </AnimateIcon>
             )}
@@ -2194,7 +2053,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
                 ) : (
                   <Send size={18} />
                 )}
-                {state === 'signing' ? 'Signing...' : 'Sign IPA'}
+                {state === 'signing' ? 'جاري التوقيع...' : 'توقيع التطبيق'}
               </Button>
             </AnimateIcon>
 
@@ -2207,7 +2066,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
                 className="h-11 gap-2 px-5"
               >
                 <Download size={18} />
-                Download
+                تحميل التطبيق
               </Button>
             </AnimateIcon>
 
@@ -2219,7 +2078,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
                 className="h-11 gap-2 px-5 text-muted-foreground hover:text-destructive"
               >
                 <Trash2 size={18} />
-                Clear
+                تفريغ الحقول
               </Button>
             </AnimateIcon>
           </div>
@@ -2229,10 +2088,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
           )}
 
           <p className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-xs leading-5 text-muted-foreground">
-            Large IPAs can be slow because unzipping, signing, and re-archiving happen
-            locally. Keep this tab open and ensure the device has several times the IPA
-            size available as free memory. Installation hosting uploads the signed IPA
-            only after you confirm.
+            التطبيقات الكبيرة قد تستغرق بعض الوقت لأن المعالجة والضغط تتم بمتصفحك محلياً. يرجى إبقاء هذا التبويب مفتوحاً حتى يكتمل التوقيع وتنزيل الملف.
           </p>
         </div>
 
@@ -2269,9 +2125,9 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
             <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-emerald-600 dark:text-emerald-400">
               <CircleCheckBig size={20} animate />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">Signing complete</p>
+                <p className="text-sm font-medium">اكتمل التوقيع</p>
                 <p className="truncate text-xs opacity-80">
-                  {outputs[0]?.name ?? outputName} is ready to download
+                  {outputs[0]?.name ?? outputName} جاهز للتحميل
                 </p>
               </div>
               <AnimateIcon animateOnHover asChild>
@@ -2282,7 +2138,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
                   className="gap-2 border-emerald-500/30 bg-background/70 text-foreground hover:bg-background"
                 >
                   <Send size={16} />
-                  {directInstallOnDevice ? 'Install on iPhone' : 'Install QR'}
+                  {directInstallOnDevice ? 'تثبيت على الآيفون' : 'كود التثبيت QR'}
                 </Button>
               </AnimateIcon>
             </div>
@@ -2290,7 +2146,7 @@ function SignerApp({ mobileMode = false }: { mobileMode?: boolean }) {
 
           {outputs.length > 0 && (
             <div className="mt-4 flex flex-col gap-2 rounded-xl border border-border bg-card px-4 py-3">
-              <p className="text-sm font-medium">Signed output</p>
+              <p className="text-sm font-medium">الملف الموقع</p>
               {outputs.map((output) => (
                 <button
                   key={output.path}
